@@ -5,10 +5,6 @@ from scrapy.linkextractors import LinkExtractor
 
 import scrapy
 
-selection_dictionary = {
-    'genre_categories': '//*[@id="wiki-body"]/div[@class="body"]/div[@class="mw-content-ltr"]/div[@class="wp_header"]/table/tbody/tr/'
-}
-
 
 class ImslpSpider(Spider):
     name = 'imslp'
@@ -50,7 +46,7 @@ class ImslpSpider(Spider):
                 .find_all('a', {'rel': 'nofollow', 'class': 'external text'})
             )
         )
-        # This let's us bypass an additional page
+        # This let's us bypass an additional confirmation page
         return [
             'https://imslp.org/wiki/Special:IMSLPDisclaimerAccept/{code_}/hfjn'.format(code_=code)
             for code in codes
@@ -100,16 +96,12 @@ class ImslpSpider(Spider):
                     soup.find_all('div', class_='wi_body'),
                     'Instrumentation'
                 )[:-1],
-                'download_urls': self._get_midi_urls(
+                'download_midi_urls': self._get_midi_urls(
                     soup
                     .find('div', {'class': 'we'})
                 )
 
             }
-
-    https://imslp.org/wiki/Special:IMSLPDisclaimerAccept/220145/hfjn
-    https://imslp.org/wiki/Special:IMSLPDisclaimerAccept/220146/hfjn
-
 
     def parse(self, response):
         for composition_href in (
