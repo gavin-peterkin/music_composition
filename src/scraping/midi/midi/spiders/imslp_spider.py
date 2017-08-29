@@ -38,7 +38,7 @@ class ImslpSpider(Spider):
                         return row.find('td').text.split(sep)
         return None
 
-    def _get_midi_urls(self, upper_level_div):
+    def _get_midi_file_codes(self, upper_level_div):
         codes = map(
             lambda x: x['href'].split('/')[-1],
             filter( lambda x: 'ImagefromIndex' in x['href'],
@@ -47,10 +47,35 @@ class ImslpSpider(Spider):
             )
         )
         # This let's us bypass an additional confirmation page
-        return [
-            'https://imslp.org/wiki/Special:IMSLPDisclaimerAccept/{code_}/hfjn'.format(code_=code)
-            for code in codes
-        ]
+        # https://imslp.org/wiki/Special:ImagefromIndex/220158/hfjn
+        # https://imslp.org/wiki/Special:IMSLPDisclaimerAccept/220158/hfjn
+        return codes
+        # return [
+        #     'https://imslp.org/wiki/Special:IMSLPDisclaimerAccept/{code_}/hfjn'.format(code_=code)
+        #     for code in codes
+        # ]
+
+    def _get_file_locations(self, soup):
+        # //*[@id="IMSLP335320"]/div[1]/p/span/span[1]/a
+        # //*[@id="IMSLP220145"]/div[1]/p/span/a
+        # //*[@id="IMSLP220146"]/div[1]/p/span/a
+        upper_level_div = (
+            soup
+            .find('div', {'class': 'we'})
+        )
+        inner_piece_divs = upper_level_div.find_all('div', {'class': 'we_file_first we_audio_top'})
+        inner_piece_divs.extend(upper_level_div.find_all('div', {'class': 'we_file we_audio_top'}))
+        result = []
+        for div in inner_piece_divs:
+            result.append(
+                (
+                    div
+                    .find('span', {'class': 'we_file_info2'})
+                    .find('span', {'class': 'hidden'})
+                    .find('a')
+                )['href']
+            )
+        return result
 
     def parse_composition(self, response):
         # Yields item information
@@ -96,11 +121,11 @@ class ImslpSpider(Spider):
                     soup.find_all('div', class_='wi_body'),
                     'Instrumentation'
                 )[:-1],
-                'download_midi_urls': self._get_midi_urls(
+                'imslp_codes': self._get_midi_urls(
                     soup
                     .find('div', {'class': 'we'})
-                )
-
+                ),
+                'file_data': self_get_file_data(soup)
             }
 
     def parse(self, response):

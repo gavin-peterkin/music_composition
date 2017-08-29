@@ -22,4 +22,5 @@ class IMSLPMidiItem(scrapy.Item):
     composer_time_period = Field()
     piece_style = Field()
     instrumentation = Field()
-    download_midi_urls = Field()
+    imslp_codes = Field()
+    file_data = Field()
