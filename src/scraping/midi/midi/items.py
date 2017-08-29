@@ -14,6 +14,7 @@ class IMSLPMidiItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
     piece_url = Field()
+    complete_html = Field()
     genre_categories = Field()
     title = Field()
     composer = Field()
@@ -24,3 +25,4 @@ class IMSLPMidiItem(scrapy.Item):
     instrumentation = Field()
     imslp_codes = Field()
     file_data = Field()
+    download_urls = Field()

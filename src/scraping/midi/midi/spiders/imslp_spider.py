@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from bs4 import BeautifulSoup
 from scrapy import Spider
 from scrapy.selector import Selector
 from scrapy.linkextractors import LinkExtractor
@@ -7,24 +8,30 @@ import scrapy
 
 
 class ImslpSpider(Spider):
-    name = 'imslp'
+    name = 'midi'
     allowed_domains = ['imslp.org']
     # Potentially add more start urls
     start_urls = [
         'http://imslp.org/index.php?title=Category:For_piano'
     ]
 
-    def _get_simple_table_element(self, upper_level_div, header_sub_text):
-        for ele in upper_level_div:
-            # There should only be one, using loop for safety
-            tables = ele.findChildren('table')
-            for table in tables:
+    def _get_simple_table_element(self, upper_level_div, header_sub_text, exclude_last_char=False):
+        try:
+            for ele in upper_level_div:
                 # There should only be one, using loop for safety
-                rows = table.findChildren('tr')
-                for row in rows:
-                    if header_sub_text in row.find('th').text:
-                        return row.find('td').text
-        return None
+                tables = ele.findChildren('table')
+                for table in tables:
+                    # There should only be one, using loop for safety
+                    rows = table.findChildren('tr')
+                    for row in rows:
+                        if header_sub_text in row.find('th').text:
+                            if exclude_last_char:
+                                return row.find('td').text[:-1]
+                            else:
+                                return row.find('td').text
+        except:
+            # This exception is hit if there's a missing attribute
+            return None
 
     def _get_listed_table_element(self, upper_level_div, header_sub_text, sep='; '):
         for ele in upper_level_div:
@@ -46,19 +53,10 @@ class ImslpSpider(Spider):
                 .find_all('a', {'rel': 'nofollow', 'class': 'external text'})
             )
         )
-        # This let's us bypass an additional confirmation page
-        # https://imslp.org/wiki/Special:ImagefromIndex/220158/hfjn
-        # https://imslp.org/wiki/Special:IMSLPDisclaimerAccept/220158/hfjn
         return codes
-        # return [
-        #     'https://imslp.org/wiki/Special:IMSLPDisclaimerAccept/{code_}/hfjn'.format(code_=code)
-        #     for code in codes
-        # ]
 
     def _get_file_locations(self, soup):
-        # //*[@id="IMSLP335320"]/div[1]/p/span/span[1]/a
-        # //*[@id="IMSLP220145"]/div[1]/p/span/a
-        # //*[@id="IMSLP220146"]/div[1]/p/span/a
+        """Returns data used for constructing download urls"""
         upper_level_div = (
             soup
             .find('div', {'class': 'we'})
@@ -77,56 +75,71 @@ class ImslpSpider(Spider):
             )
         return result
 
+    def _get_download_urls(self, imslp_codes, file_data):
+        code_file_pairs = zip(imslp_codes, file_data)
+        download_urls = [
+            'http://ks.imslp.net/files/imglnks/usimg/{file_dir}/IMSLP{code}-{filename}'.format(
+                file_dir='/'.join(fp.split('/')[2:-1]),
+                code=code,
+                filename=fp.split('/')[-1]
+            )
+            for code, fp in code_file_pairs
+        ]
+        return download_urls
+
     def parse_composition(self, response):
-        # Yields item information
-        response = scrapy.Request(piece_page)
         # Could use a different xpath selector here rather than RE
         if response.css('#tabAudio1_tab > b > a::text').re(r'Synthesized/MIDI') == []:
             # There's no tab for midi, so we don't care about it
-            pass
+            yield None
         else:
             soup = BeautifulSoup(response.text, 'lxml')
-            yield {
+            tmp_dict = {
                 'piece_url': response.url,
                 'complete_html': soup.text,
                 'genre_categories': self._get_listed_table_element(
-                    soup.find_all('div', class_='wp_header'),
+                    soup.find_all('div', {'class': 'wp_header'}),
                     'Genre Categories', sep='; '
                 ),
-                'title': self._get_table_element(
-                    soup.find_all('div', class_'wi_body'),
-                    'Work Title'
-                )[:-1],  # Some things end with a newline char
-                'composer': self._get_table_element(
-                    soup.find_all('div', class_='wi_body'),
-                    'Composer'
-                )[:-1],
-                'key': self._get_table_element(
-                    soup.find_all('div', class_'wi_body'),
-                    'Key'
-                )[:-1],
-                'publication_year': self._get_table_element(
-                    soup.find_all('div', class_='wp_header'),
-                    'First Publication'
-                )[:-1],
-                'composer_time_period': self._get_table_element(
-                    soup.find_all('div', class_='wi_body'),
-                    'Composer Time Period'
+                'title': self._get_simple_table_element(
+                    soup.find_all('div', {'class': 'wi_body'}),
+                    'Work Title', exclude_last_char=True
+                ),  # Some things end with a newline char
+                'composer': self._get_simple_table_element(
+                    soup.find_all('div', {'class': 'wi_body'}),
+                    'Composer', exclude_last_char=True
                 ),
-                'piece_style': self._get_table_element(
-                    soup.find_all('div', class_='wi_body'),
-                    'Piece Style'
+                'key': self._get_simple_table_element(
+                    soup.find_all('div', {'class': 'wi_body'}),
+                    'Key', exclude_last_char=True
                 ),
-                'instrumentation': self._get_table_element(
-                    soup.find_all('div', class_='wi_body'),
-                    'Instrumentation'
-                )[:-1],
-                'imslp_codes': self._get_midi_urls(
+                'publication_year': self._get_simple_table_element(
+                    soup.find_all('div', {'class': 'wp_header'}),
+                    'First Publication', exclude_last_char=True
+                ),
+                'composer_time_period': self._get_simple_table_element(
+                    soup.find_all('div', {'class': 'wi_body'}),
+                    'Composer Time Period', exclude_last_char=True
+                ),
+                'piece_style': self._get_simple_table_element(
+                    soup.find_all('div', {'class': 'wi_body'}),
+                    'Piece Style', exclude_last_char=True
+                ),
+                'instrumentation': self._get_simple_table_element(
+                    soup.find_all('div', {'class': 'wi_body'}),
+                    'Instrumentation', exclude_last_char=True
+                ),
+                'imslp_codes': self._get_midi_file_codes(
                     soup
                     .find('div', {'class': 'we'})
                 ),
-                'file_data': self_get_file_data(soup)
+                'file_data': self._get_file_locations(soup)
             }
+            tmp_dict.update({
+                'download_urls': self._get_download_urls(tmp_dict['imslp_codes'], tmp_dict['file_data'])
+            })
+            yield tmp_dict
+
 
     def parse(self, response):
         for composition_href in (
@@ -136,9 +149,10 @@ class ImslpSpider(Spider):
         ):
             yield response.follow(composition_href, self.parse_composition)
 
-        for new_page_href in (
+        next_page = (
             response
             .css('#mw-pages > div > a::attr(href)')
             .extract_first()
-        ):
-            yield response.follow(new_page_href, self.parse)
+        )
+        if next_page is not None:
+            yield response.follow(next_page, self.parse)

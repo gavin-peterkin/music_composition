@@ -6,7 +6,7 @@ from settings import MONGODB_SERVER, MONGODB_PORT, MONGODB_DB, MONGODB_COLLECTIO
 import sys
 
 """
-Use this file to completely drop a database and re-intialize and empty one
+Use this file to completely drop a database and re-intialize an empty one
 """
 
 
