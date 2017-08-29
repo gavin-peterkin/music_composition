@@ -22,11 +22,16 @@ MONGODB_PORT = 27017
 MONGODB_DB = "imslp"
 MONGODB_COLLECTION = "piano_pieces"
 
+# LOGGING
+# LOG_FILE = './LOG/scrapy.log'
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'midi (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = False
+
+DEPTH_LIMIT=0
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 CONCURRENT_REQUESTS = 1
@@ -90,8 +95,8 @@ DOWNLOAD_DELAY = 3
 
 # Enable and configure HTTP caching (disabled by default)
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
-#HTTPCACHE_ENABLED = True
-#HTTPCACHE_EXPIRATION_SECS = 0
+HTTPCACHE_ENABLED = True
+HTTPCACHE_EXPIRATION_SECS = 10
 #HTTPCACHE_DIR = 'httpcache'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
-#HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
+HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'

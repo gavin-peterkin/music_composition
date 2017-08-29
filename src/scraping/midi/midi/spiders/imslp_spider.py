@@ -1,19 +1,27 @@
 # -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 from scrapy import Spider
+from scrapy.spiders import Rule, CrawlSpider
 from scrapy.selector import Selector
 from scrapy.linkextractors import LinkExtractor
 
 import scrapy
 
 
-class ImslpSpider(Spider):
+class ImslpSpider(CrawlSpider):
     name = 'midi'
     allowed_domains = ['imslp.org']
     # Potentially add more start urls
     start_urls = [
         'http://imslp.org/index.php?title=Category:For_piano'
     ]
+    rules = (
+        # How to find next page links
+        Rule(LinkExtractor(restrict_css='#mw-pages > div > a'), follow=True),
+        # How to parse pieces of music
+        Rule(LinkExtractor(restrict_css='#catcolp1-0 > ul > li > a'), callback='parse_composition'),
+
+    )
 
     def _get_simple_table_element(self, upper_level_div, header_sub_text, exclude_last_char=False):
         try:
@@ -140,19 +148,10 @@ class ImslpSpider(Spider):
             })
             yield tmp_dict
 
-
-    def parse(self, response):
+    def parse_start_url(self, response):
         for composition_href in (
-            Selector(response)
-            .css('#catcolp1-0 > ul > li > a::attr(href)')
-            .extract()
-        ):
-            yield response.follow(composition_href, self.parse_composition)
-
-        next_page = (
-            response
-            .css('#mw-pages > div > a::attr(href)')
-            .extract_first()
-        )
-        if next_page is not None:
-            yield response.follow(next_page, self.parse)
+                response
+                .css('#catcolp1-0 > ul > li > a::attr(href)')
+                .extract()
+            ):
+            yield response.follow(composition_href, callback=self.parse_composition)
