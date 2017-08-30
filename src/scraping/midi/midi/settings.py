@@ -23,7 +23,14 @@ MONGODB_DB = "imslp"
 MONGODB_COLLECTION = "piano_pieces"
 
 # LOGGING
-# LOG_FILE = './LOG/scrapy.log'
+LOG_FILE = './LOG/scrapy.log'
+
+# This setting allows us to stop and later resume jobs
+JOBDIR = './JOBDIR/'
+# To start with persistence enable use:
+# scrapy crawl somespider -s JOBDIR=crawls/somespider-1
+# To resume:
+# scrapy crawl somespider -s JOBDIR=crawls/somespider-1
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'midi (+http://www.yourdomain.com)'

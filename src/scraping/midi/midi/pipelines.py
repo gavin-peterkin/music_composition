@@ -5,15 +5,12 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
-from io import BytesIO
 from scrapy import log
 from scrapy.conf import settings
 
-import gridfs
 import pymongo
 import scrapy
-import time
-import random
+
 
 class MongoDBPipeline(object):
 
@@ -32,7 +29,7 @@ class MongoDBPipeline(object):
         self.collection.insert(insert_data)
         log.msg(
             "added title/composer--{title}/{composer}".format(
-                item['title'], item['composer']
+                insert_data['title'], insert_data['composer']
             ),
             level=log.DEBUG, spider=spider
         )
