@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from s3_mongo_inter import S3MongoInterface
+from utility.s3_mongo_inter import S3MongoInterface
 
 """
 Placeholder for later expansion of s3_mongo_inter
