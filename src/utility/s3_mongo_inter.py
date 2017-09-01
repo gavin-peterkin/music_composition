@@ -62,7 +62,7 @@ class S3MongoInterface(object):
         Looks at local MongoDB and checks for midi download urls every X seconds
         if enable_frequency_checks is True, otherwise it just checks once.
 
-        Downloads file into Bytestream and sends to S3 bucket with key equal to the
+        Downloads file into memory and sends to S3 bucket with key equal to the
         original download URL.
 
         Upon successful completion, adds boolean document attribute "s3_complete"
@@ -78,3 +78,11 @@ class S3MongoInterface(object):
             for download_url in doc['download_urls']:
                 if download_url[-4:] == '.mid':
                     self._insert_new_midi(doc['_id'], download_url)
+
+    def pull_midi_data(self, mongo_query):
+        """
+        Generator that yields bytestream for all midi files that are returned
+        by querying DB with <mongo_query>
+        """
+        # self.collection.get()["Body"].read()
+        pass
