@@ -1,9 +1,13 @@
 from __future__ import print_function, division
 
 from collections import defaultdict
+from io import BytesIO
 from mido import MidiFile, merge_tracks, tempo2bpm
 
 from operator import itemgetter
+
+# TODO: Implement expected key and have a property/attribute set to the estimated
+# key signature
 
 class MidiParser(object):
     """
@@ -16,23 +20,32 @@ class MidiParser(object):
     NOTE:
     "beat" is defined as the smallest unit that will be perceptible to the RNN
     which is one 16th note or 1/4 of a quarter note regardless of midi time_signature
+    meta messages
     """
 
-    beat_sep = '\n'
-    note_sep = '_'
     extra_trailing_beats = 20
 
-    def __init__(self, midi_byte_stream):
-        self.midi = MidiFile(file=midi_byte_stream)
+    def __init__(self, midi_byte_stream, expected_key):
+        self.midi = MidiFile(file=BytesIO(midi_byte_stream))
+        self.imslp_expected_key = self._translate_imslp_key(expected_key)
 
         self.meta_messages = self._get_meta_messages()
+
         # abs_tempo is the number of ticks per beat
-        self.abs_tempo = self._get_approx_meta_attr(
-            self.meta_messages, 'set_tempo', 'tempo'
-        )
-        self.key = self._get_approx_meta_attr(
-            self.meta_messages, 'key_signature', 'key'
-        )
+        try:
+            self.abs_tempo = self._get_approx_meta_attr(
+                self.meta_messages, 'set_tempo', 'tempo'
+            )
+        except ValueError:
+            # Occurs when there are no related meta_messages
+            self.abs_tempo = None
+        try:
+            self.key = self._get_approx_meta_attr(
+                self.meta_messages, 'key_signature', 'key'
+            )
+        except ValueError:
+            # Occurs when there are no related meta_messages
+            self.key = None
 
         self.master_track = self._get_master_track()
         # ticks per 16th note
@@ -40,6 +53,66 @@ class MidiParser(object):
 
         # Sets attribute note_activity_dict
         self._parse_into_dict()
+
+    def _translate_imslp_key(self, key_str):
+        """
+        Given a string indicating key scraped from IMSLP,
+        Returns string of the form '<note>-<flat/sharp>-<major/minor>' if possible
+        if the key can't be determined, returns None
+        """
+
+        music_char_translation = {
+            u"\u266d": 'flat',
+            u"\u266f": 'sharp'
+        }
+        notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+
+        # Replace unusual sharp and flat characters
+        for char, translation in music_char_translation.iteritems():
+            key_str = key_str.replace(char, translation)
+        if not any([note in key_str for note in notes]):
+            # If we can't find any capital letter for the key, we can't determine a key
+            return None
+        possible_key_notes = [
+            char for char in key_str if char.isupper() and char in notes
+        ]
+        if len(possible_key_notes) > 1:
+            return None
+        else:
+            key_note = possible_key_notes[0]
+        # Upper/lower is no longer useful
+        key_str = key_str.lower()
+        if 'sharp' in key_str:
+            half_step = 'sharp'
+        elif 'flat' in key_str:
+            half_step = 'flat'
+        else:
+            half_step = ''
+        if 'minor' in key_str:
+            maj_min = 'minor'
+        else:
+            # Major is typically treated as the default
+            maj_min = 'major'
+        return '{note}-{half_step}-{maj_min}'.format(
+            note=key_note,
+            half_step=half_step,
+            maj_min=maj_min
+        )
+
+    @property
+    def best_estimated_key_signature(self):
+        """
+        Return a best guess for the key if possible
+
+        If it's in the midi file, use that. Otherwise, use what's on the site.
+        If neither is available, returns None
+        """
+        if self.key:
+            return self._translate_imslp_key(self.key)
+        elif self.imslp_expected_key:
+            return self.imslp_expected_key
+        else:
+            return None
 
     def _get_meta_messages(self):
         messages = []
@@ -162,11 +235,11 @@ class MidiParser(object):
         Given integer note and integer action returns a string encoding
         """
         if action > 1:
-            return str(note)
+            return (note, 'b')  # Begin note
         elif action > 0:
-            return str(note) + 'c'
+            return (note, 's')  # Sustain note
         else:
-            return ''
+            return tuple()
 
     @property
     def list_of_notes(self):

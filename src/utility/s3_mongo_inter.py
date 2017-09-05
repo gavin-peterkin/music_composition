@@ -79,10 +79,37 @@ class S3MongoInterface(object):
                 if download_url[-4:] == '.mid':
                     self._insert_new_midi(doc['_id'], download_url)
 
-    def pull_midi_data(self, mongo_query):
+    def pull_midi_data(self, mongo_query, limit=None):
         """
         Generator that yields bytestream for all midi files that are returned
         by querying DB with <mongo_query>
+
+        Limit: None by default. If int, returns only first int items.
         """
-        # self.collection.get()["Body"].read()
-        pass
+        # We only ever care about entries with a midi file associated with them
+        # We also want to be sure to only get data that has been downloaded and
+        # added to the S3 bucket
+        mongo_query.update({
+            "download_urls": {'$elemMatch': {'$regex': '.*\.mid'}},
+            "s3_complete": 1,
+            "missing_key": {"$exists": 0}
+        })
+        cursor = self.collection.find(
+            mongo_query,
+            {"_id": 1, "download_urls": 1, "key": 1}
+        )
+        i = 0
+        for doc in cursor:
+            web_suggested_key = doc['key']
+            for download_url in doc['download_urls']:
+                i += 1
+                imslp_filename = self._construct_obj_key(download_url)
+                # yields id_, filename, data, key_sig_from_site
+                yield (
+                    doc['_id'],
+                    imslp_filename,
+                    self.bucket.Object(key=imslp_filename).get()['Body'].read(),
+                    web_suggested_key
+                )
+                if limit and i >= limit:
+                    break
