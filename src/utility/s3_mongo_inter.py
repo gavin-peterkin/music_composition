@@ -5,9 +5,11 @@ from settings import (
     HEADERS, COOKIES, MIN_SLEEP, MAX_SLEEP
 )
 
+from bson.binary import Binary
 from io import BytesIO
 
 import boto3
+import cPickle as pickle
 import random
 import requests
 import time
@@ -92,7 +94,8 @@ class S3MongoInterface(object):
         mongo_query.update({
             "download_urls": {'$elemMatch': {'$regex': '.*\.mid'}},
             "s3_complete": 1,
-            "missing_key": {"$exists": 0}
+            "missing_key": {"$exists": 0},
+            "has_input_layer": {"$exists": 0}  # Doesn't already have saved input layer
         })
         cursor = self.collection.find(
             mongo_query,
@@ -102,14 +105,40 @@ class S3MongoInterface(object):
         for doc in cursor:
             web_suggested_key = doc['key']
             for download_url in doc['download_urls']:
-                i += 1
                 imslp_filename = self._construct_obj_key(download_url)
-                # yields id_, filename, data, key_sig_from_site
-                yield (
-                    doc['_id'],
-                    imslp_filename,
-                    self.bucket.Object(key=imslp_filename).get()['Body'].read(),
-                    web_suggested_key
-                )
+                if download_url[-4:] == '.mid':
+                    i += 1
+                    # yields id_, filename, data, key_sig_from_site
+                    yield (
+                        doc['_id'],
+                        imslp_filename,
+                        self.bucket.Object(key=imslp_filename).get()['Body'].read(),
+                        web_suggested_key
+                    )
                 if limit and i >= limit:
                     break
+
+    def insert_input_array(self, id_, arr):
+        self.collection.update_one(
+            {"_id": id_},
+            {"$set": {
+                "input_layer_array": Binary(pickle.dumps(arr, protocol=2)),
+                "has_input_layer": 1
+            }}
+        )
+
+    def get_input_arrays(self, mongo_query):
+        """
+        Generator that yields an input array
+        """
+        mongo_query.update({
+            "download_urls": {'$elemMatch': {'$regex': '.*\.mid'}},
+            "has_input_layer": 1
+        })
+        while True:
+            cursor = self.collection.find(
+                mongo_query,
+                {"input_layer_array": 1}
+            )
+            for doc in cursor:
+                yield pickle.loads(doc["input_layer_array"])

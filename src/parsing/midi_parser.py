@@ -60,6 +60,9 @@ class MidiParser(object):
         Returns string of the form '<note>-<flat/sharp>-<major/minor>' if possible
         if the key can't be determined, returns None
         """
+        # If we don't have it, we don't have it
+        if not key_str:
+            return None
 
         music_char_translation = {
             u"\u266d": 'flat',
@@ -129,9 +132,15 @@ class MidiParser(object):
         return max(filtered_msgs, key=lambda x: x.time).dict()[midi_value]
 
     def _get_master_track(self):
-        return [
-            msg for msg in merge_tracks(self.midi.tracks) if msg.type in ['note_on', 'note_off']
-        ]
+        try:
+            return [
+                msg for msg in merge_tracks(self.midi.tracks) if hasattr(msg, 'type') and msg.type in ['note_on', 'note_off']
+            ]
+        except TypeError:
+            # Exclude the first track
+            return [
+                msg for msg in merge_tracks(self.midi.tracks[1:]) if hasattr(msg, 'type') and msg.type in ['note_on', 'note_off']
+            ]
 
     def _get_beat_delta(self):
         return self.midi.ticks_per_beat / 4.

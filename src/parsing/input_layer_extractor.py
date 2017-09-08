@@ -1,13 +1,5 @@
+import numpy as np
 
-"""
-Placeholder
-
-class that accepts MidiParser.list_of_notes
-
-class attribute that controls which key all pieces are shifted into
-
-has simple method for some kind of music playback
-"""
 
 class InputLayerExtractor(object):
 
@@ -53,10 +45,48 @@ class InputLayerExtractor(object):
 
         return map(shift_each_note, list_of_notes)
 
+    def _convert_to_input_layer(self, list_of_notes):
+        # Remove empty beats from the end of the list
+        tmp_list = list_of_notes
+        while not tmp_list[-1]:
+            _ = tmp_list.pop()
+        input_layer = np.zeros((len(tmp_list), 128))
+        for i, beat in enumerate(tmp_list):
+            for note, sustain in beat:
+                input_layer[i, note] += 1
+                # FIXME: Need to deal with sustain later
+                # if sustain == 's':
+                #     input_layer[i, note] += 1
+        # FIXME: Think about how to include the number of notes being played
+        # np.hstack(input_layer, input_layer.sum(axis=1, keepdims=True))
+        return input_layer
+
+    def _inv_convert_output_layer(self, output_layer):
+        # Need to figure this out
+        pass
+
+    @property
+    def input_layer_seed_chord(self):
+        # Define C major
+        c_chord = [[(60, 'b')]]
+        c_chord.extend([[(60, 's')]] * 3)
+        c_chord.extend([[(60, 's'), (64, 'b')]])
+        c_chord.extend([[(60, 's'), (64, 's')]] * 3)
+        c_chord.extend([[(60, 's'), (64, 's'), (67, 'b')]])
+        c_chord.extend([[(60, 's'), (64, 's'), (67, 's')]] * 3)
+        return self._convert_to_input_layer(c_chord)
+
     @property
     def input_layer_array(self):
         """
         Returns 2d array where each row corresponds to a beat
         each row also covers the entire notespace
+
+        Reference to the midi standard:
+        http://www.electronics.dit.ie/staff/tscarff/Music_technology/midi/midi_note_numbers_for_octaves.htm
+
+        There are 128 total possible notes with midi
+
+        the last column, 129, indicates the number of notes being played
         """
-        pass
+        return self._convert_to_input_layer(self.list_of_notes)

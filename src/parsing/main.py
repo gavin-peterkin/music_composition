@@ -21,7 +21,7 @@ See the ipynb for detangling the mess that is midi.
 
 
 
-def main():
+def initialize_input_arrays():
     print("Initializing connections...")
     interface = S3MongoInterface()
     print("Done.")
@@ -30,7 +30,15 @@ def main():
     query = {}
     for id_, filename, midi_byte_stream, expected_key in interface.pull_midi_data(query, limit=10):
 
-        midi_parser = MidiParser(midi_byte_stream, expected_key)
+        try:
+            midi_parser = MidiParser(midi_byte_stream, expected_key)
+        except:
+            print("Bad file {}".format(filename))
+            interface.collection.update_one(
+                {'_id': id_},
+                {"$set": {"bad_file": 1}}, upsert=False
+            )
+            continue
 
         key_signature = midi_parser.best_estimated_key_signature
 
@@ -42,9 +50,16 @@ def main():
             )
             print("Missing key_signature for file {}".format(filename))
             continue
-        #
+
         ile = InputLayerExtractor(midi_parser.list_of_notes, key_signature)
-        import pdb; pdb.set_trace()
+
+        # Save the input layer array as binary in mongodb
+        interface.insert_input_array(id_, ile.input_layer_array)
+        # Print "." for progress
+        sys.stdout.write('.')
+        sys.stdout.flush()
+    print("Done.")
+
 
 
 
@@ -52,4 +67,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if sys.argv[1].lower() == "init":
+        initialize_input_arrays()
