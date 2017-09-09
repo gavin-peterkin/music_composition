@@ -1,0 +1,2 @@
+model_checkpoint_path: "/Users/gavinpeterkin/workspace/music_composition/src/modeling/tmp/model.ckpt"
+all_model_checkpoint_paths: "/Users/gavinpeterkin/workspace/music_composition/src/modeling/tmp/model.ckpt"

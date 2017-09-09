@@ -17,11 +17,11 @@ class SimpleModel(object):
         self.learning_rate = 0.3
 
         # LSTM cell
-        self.state_size = 10
+        self.state_size = 100
         self.num_layers = 3
 
-        self.input_size = 128
-        self.output_size = 128
+        self.input_size = 138
+        self.output_size = 138
 
         # data source interface
         self.interface = S3MongoInterface()
@@ -180,13 +180,21 @@ class SimpleModel(object):
         W2, b2 = model_vars
         print("Starting training")
         with tf.Session() as sess:
+
             init = tf.global_variables_initializer()
             sess.run(init)
+
+            saved_state = tf.get_variable('saved_state', shape=[self.num_layers, 2, self.batch_size, self.state_size])
+
+            saver = tf.train.Saver(max_to_keep=1)
+
+            # Does it make sense to reset the state here like this? stateless/stateful or no difference?
+            _current_state = np.zeros((self.num_layers, 2, self.batch_size, self.state_size))
 
             for epoch in range(self.num_epochs):
                 # Initialize inputs
                 X_, y_ = self._protected_data_batch().next()
-                _current_state = np.zeros((self.num_layers, 2, self.batch_size, self.state_size))
+
                 # One step
                 _total_loss, _train_step, _current_state, _predictions_series = sess.run(
                     [total_loss, train_step, current_state, predictions_series],
@@ -197,12 +205,18 @@ class SimpleModel(object):
                     })
                 self.loss_list.append(_total_loss)
 
-                if epoch % 100 == 0:
+                if epoch % 10 == 0:
                     print("Epoch", epoch, "loss:", _total_loss)
             if save:
-                # import pdb; pdb.set_trace()
                 print("saving")
                 # import pdb; pdb.set_trace()
+                # _current_state is tuple of len num_layers, consisting of tuples of len 2, consisting of arrays of len state_size
+                final_state = np.array([[t for t in st] for st in _current_state])
+
+                assign_op = tf.assign(saved_state, final_state)
+                sess.run(assign_op)
+                saver.save(sess, self.model_path + '/model.ckpt')
+
                 self._save_model_params(sess, W2, b2, _current_state)
 
         print("Done")
@@ -224,20 +238,22 @@ class SimpleModel(object):
             [1, self.truncated_backprop_length * self.input_size],
             name='X_seed'
         )
-        _current_state = tf.placeholder(
+        _init_state = tf.placeholder(
             tf.float32,
             [self.num_layers, 2, self.batch_size, self.state_size]
         )
-        W2 = tf.Variable(
-            np.random.rand(self.state_size, self.output_size),
-            dtype=tf.float32, name="W2"
+        W2 = tf.placeholder(
+            tf.float32,
+            [self.state_size, self.output_size],
+            name="W2"
         )
-        b2 = tf.Variable(
-            np.zeros((1, self.output_size)),
-            dtype=tf.float32, name="b2"
+        b2 = tf.placeholder(
+            tf.float32,
+            [1, self.output_size],
+            name="b2"
         )
 
-        state_per_layer_list = tf.unstack(_current_state, axis=0)
+        state_per_layer_list = tf.unstack(_init_state, axis=0)
         rnn_tuple_state = tuple(
             [tf.nn.rnn_cell.LSTMStateTuple(state_per_layer_list[idx][0,:,:], state_per_layer_list[idx][1,:,:])
             for idx in range(self.num_layers)]
@@ -270,20 +286,24 @@ class SimpleModel(object):
         predictions_series = [
             tf.nn.sigmoid(logits) for logits in logits_series
         ]
-        return X_seed, W2, b2, _current_state, predictions_series
+        return X_seed, W2, b2, _init_state, current_state, predictions_series
 
-    def predict(self, X_seed_np, restore_saved=True):
+    def predict(self, X_seed_np, steps=40, restore_saved=True):
 
-        # Use W2, b2, states_series to make predictions
         # tf.reset_default_graph()
+        # FIXME: THIS IS NOT RESTORING CORRECTLY!
+        X_seed, W2, b2, _init_state, current_state, predictions_series = self._single_pred()
 
         # lstm_cells = tf.get_variable("lstm_cells")
         # W2 = tf.get_variable("W2", shape=[self.state_size, self.input_size])
         # b2 = tf.get_variable("b2", shape=[1, self.input_size])
-        _W2, _b2, _init_state = self._load_model_params()
+        _W2, _b2, _current_state = self._load_model_params()
+        # _current_state = np.array([[t for t in st] for st in _current_state])
+        results = list()
 
         with tf.Session() as sess:
             # Init X_seed and _current_state
+
             init = tf.global_variables_initializer()
 
             # restore_saver = tf.train.import_meta_graph(self.model_path + '.meta')
@@ -291,12 +311,15 @@ class SimpleModel(object):
             # Restore model variables
             sess.run(init)
 
-            X_seed, W2, b2, _current_state, predictions_series = self._single_pred()
-            result = sess.run(predictions_series, feed_dict={
-                X_seed: self.truncate_music_seed(X_seed_np),
-                W2: _W2,
-                b2: _b2,
-                _current_state: _init_state
-            })
+            for step in range(steps):
+                result, _current_state = sess.run([predictions_series, current_state], feed_dict={
+                    X_seed: self.truncate_music_seed(X_seed_np),
+                    W2: _W2,
+                    b2: _b2,
+                    _init_state: _current_state
+                })
+                # import pdb; pdb.set_trace()
+                # _current_state = np.array([[t for t in st] for st in _current_state])
+                results.append(result)
 
-        return result
+        return results

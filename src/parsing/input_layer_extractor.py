@@ -45,6 +45,22 @@ class InputLayerExtractor(object):
 
         return map(shift_each_note, list_of_notes)
 
+    def _note_count_index(self, note_count_arr):
+        mask_9 = (note_count_arr >= 9)
+        mask_0 = (note_count_arr <= 0)
+        note_count_arr[mask_9] = 9
+        note_count_arr[mask_0] = 0
+        return note_count_arr
+
+    def _get_note_count_hot_arr(self, note_count_arr):
+        """
+        Given a note_count int returns an array of len 10 to append to the end
+        of the input layer so the number of notes to select can be determined during playback
+        """
+        result = np.zeros((note_count_arr.size, 10))
+        result[np.arange(note_count_arr.size), self._note_count_index(note_count_arr).astype(int)] = 1
+        return result
+
     def _convert_to_input_layer(self, list_of_notes):
         # Remove empty beats from the end of the list
         tmp_list = list_of_notes
@@ -54,27 +70,44 @@ class InputLayerExtractor(object):
         for i, beat in enumerate(tmp_list):
             for note, sustain in beat:
                 input_layer[i, note] += 1
-                # FIXME: Need to deal with sustain later
+                # NOTE: sustain treatment makes sense?
                 # if sustain == 's':
-                #     input_layer[i, note] += 1
+                #     input_layer[i, note] -= 1
         # FIXME: Think about how to include the number of notes being played
-        # np.hstack(input_layer, input_layer.sum(axis=1, keepdims=True))
-        return input_layer
+        note_count_arr = input_layer.sum(axis=1)
+        return np.hstack([input_layer, self._get_note_count_hot_arr(note_count_arr)])
 
-    def _inv_convert_output_layer(self, output_layer):
-        # Need to figure this out
-        pass
+    def truncate_music_seed(self, X_seed, input_size, batch_size, truncated_backprop_length):
+        assert X_seed.shape[1] == input_size, "Invalid seed shape {}".format(X_seed.shape)
+        length_difference = truncated_backprop_length - X_seed.shape[0]
+
+        if length_difference > 0:
+            zeros_pad = np.zeros((length_difference, input_size))
+            return np.vstack([zeros_pad, X_seed])
+        else:
+            return X_seed[-truncated_backprop_length:]
+
+    @property
+    def c_chord(self):
+        # Define C major
+        return self._make_seed_chord(60, 64, 67)
+
+    @property
+    def a_min_chord(self):
+        return self._make_seed_chord(57, 60, 64)
+
+    def _make_seed_chord(self, notea, noteb, notec):
+        chord = [[(notea, 'b')]]
+        chord.extend([[(notea, 's')]] * 3)
+        chord.extend([[(notea, 's'), (noteb, 'b')]])
+        chord.extend([[(notea, 's'), (noteb, 's')]] * 3)
+        chord.extend([[(notea, 's'), (noteb, 's'), (notec, 'b')]])
+        chord.extend([[(notea, 's'), (noteb, 's'), (notec, 's')]] * 3)
+        return chord
 
     @property
     def input_layer_seed_chord(self):
-        # Define C major
-        c_chord = [[(60, 'b')]]
-        c_chord.extend([[(60, 's')]] * 3)
-        c_chord.extend([[(60, 's'), (64, 'b')]])
-        c_chord.extend([[(60, 's'), (64, 's')]] * 3)
-        c_chord.extend([[(60, 's'), (64, 's'), (67, 'b')]])
-        c_chord.extend([[(60, 's'), (64, 's'), (67, 's')]] * 3)
-        return self._convert_to_input_layer(c_chord)
+        return self._convert_to_input_layer(self.c_chord)
 
     @property
     def input_layer_array(self):

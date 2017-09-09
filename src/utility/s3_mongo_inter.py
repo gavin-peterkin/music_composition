@@ -95,7 +95,7 @@ class S3MongoInterface(object):
             "download_urls": {'$elemMatch': {'$regex': '.*\.mid'}},
             "s3_complete": 1,
             "missing_key": {"$exists": 0},
-            "has_input_layer": {"$exists": 0}  # Doesn't already have saved input layer
+            # "has_input_layer": {"$exists": 0}  # Doesn't already have saved input layer
         })
         cursor = self.collection.find(
             mongo_query,
@@ -119,15 +119,23 @@ class S3MongoInterface(object):
                     break
 
     def insert_input_array(self, id_, arr):
-        self.collection.update_one(
-            {"_id": id_},
-            {"$set": {
-                "input_layer_array": Binary(pickle.dumps(arr, protocol=2)),
-                "has_input_layer": 1
-            }}
-        )
+        try:
+            self.collection.update_one(
+                {"_id": id_},
+                {"$set": {
+                    "input_layer_array": Binary(pickle.dumps(arr, protocol=2)),
+                    "has_input_layer": 1
+                }}
+            )
+        except pymongo.errors.DocumentTooLarge:
+            self.collection.update_one(
+                {"_id": id_},
+                {"$set": {
+                    "has_input_layer": 0
+                }}
+            )
 
-    def get_input_arrays(self, mongo_query):
+    def get_input_arrays(self, mongo_query, go_forever=True):
         """
         Generator that yields an input array
         """
@@ -135,10 +143,18 @@ class S3MongoInterface(object):
             "download_urls": {'$elemMatch': {'$regex': '.*\.mid'}},
             "has_input_layer": 1
         })
-        while True:
+        if not go_forever:
             cursor = self.collection.find(
                 mongo_query,
                 {"input_layer_array": 1}
             )
             for doc in cursor:
                 yield pickle.loads(doc["input_layer_array"])
+        else:
+            while True:
+                cursor = self.collection.find(
+                    mongo_query,
+                    {"input_layer_array": 1}
+                )
+                for doc in cursor:
+                    yield pickle.loads(doc["input_layer_array"])

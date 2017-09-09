@@ -1,8 +1,9 @@
 from __future__ import division
 
+import datetime as dt
 import numpy as np
 import pyaudio
-
+import wave
 
 class ToneGenerator(object):
 
@@ -40,7 +41,7 @@ class Playback(object):
     sample_rate = 44100.
 
     def __init__(self, list_of_notes, sample_rate=44100, tempo=60):
-        self.p = pyaudio.PyAudio()
+        self.pa = pyaudio.PyAudio()
         self.list_of_notes = list_of_notes
         self.sample_rate = sample_rate
         self.tempo = tempo
@@ -49,20 +50,40 @@ class Playback(object):
         """A5 is note 69: 440 Hz"""
         return 440 * 2 ** ((note - 69) / 12)
 
-    def output_playback_stream(self):
-        """
-        returns something that can be played as audio
-        maybe put this in a utility?
-        """
-        stream = self.p.open(
+    def get_wavfile_output(self, filename):
+        waveFile = wave.open(filename, 'wb')
+        waveFile.setnchannels(1)
+        waveFile.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
+        waveFile.setframerate(self.sample_rate)
+        return waveFile
+
+    def get_playback_output(self):
+        stream = self.pa.open(
             format=pyaudio.paFloat32,
             channels=1,
             rate=self.sample_rate,
             output=True
         )
+        return stream
+
+    def _float2pcm(self, sig):
+        # import pdb; pdb.set_trace()
+        return (sig * 32767 + np.random.rand(sig.size)).clip(-32768, 32767).astype(np.int16)
+
+    def output_playback_stream(self, filename = None):
+        """
+        returns something that can be played as audio
+        maybe put this in a utility?
+        """
+        if not filename:
+            stream = self.get_playback_output()
+        else:
+            stream = self.get_wavfile_output(filename)
+
         current_tones = dict()
         previous_active_notes = set()
-        beat_length = int(self.tempo * self.sample_rate / 60)
+        beat_per_sec = self.tempo * 4 / 60
+        beat_length = int(self.sample_rate / beat_per_sec)
         for beat in self.list_of_notes:
             active_notes = set()
             for note, sustain in beat:
@@ -75,10 +96,24 @@ class Playback(object):
             output = np.zeros(beat_length, dtype=np.float32)
             for tone_generator in current_tones.values():
                 output += tone_generator.get_next_samples(beat_length)
-            stream.write(output / 12)
+            if not filename:
+                stream.write(output / 12)
+            else:
+                stream.writeframes(self._float2pcm(output / 12))
             previous_active_notes = active_notes
-        stream.stop_stream()
+        if not filename:
+            stream.stop_stream()
         stream.close()
 
+    def play(self):
+        try:
+            self.output_playback_stream()
+            self.terminate()
+        except KeyboardInterrupt:
+            self.terminate()
+
+    def save(self, filename):
+        self.output_playback_stream(filename)
+
     def terminate(self):
-        self.p.terminate()
+        self.pa.terminate()

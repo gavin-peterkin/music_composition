@@ -27,7 +27,9 @@ def initialize_input_arrays():
     print("Done.")
 
     # Be more selective about music that you want here:
-    query = {}
+    query = {
+        "bad_file": {"$exists": 0}
+    }
     for id_, filename, midi_byte_stream, expected_key in interface.pull_midi_data(query, limit=10):
 
         try:
