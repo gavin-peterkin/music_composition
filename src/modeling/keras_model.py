@@ -5,38 +5,44 @@ from parsing.output_translation import OutputLayerExtractor as OLE
 
 from keras import optimizers
 from keras.models import Sequential, load_model
-from keras.layers import Dense, Dropout, Activation
-from keras.layers import LSTM
+from keras.layers import Dense, Dropout, Activation, LSTM
 from keras.layers.embeddings import Embedding
 from keras.preprocessing import sequence
 
 import numpy as np
 import os
-import cPickle as pickle
 
 
 class Model(object):
 
     note_count_len = 10
 
-    def __init__(self, attempt_reload=False, num_epochs=50):
-        self.truncated_backprop_length = 25
-        self.batch_size = 30
+    truncated_backprop_length = 32
+    batch_size = 30
+
+    # LSTM cell
+    state_size = 10
+    num_layers = 1
+
+    input_size = 138
+    hidden_dimension = 200
+    output_size = 138
+
+    def __init__(
+        self, attempt_reload=False, save_name='tmp/keras_model.h5',
+        num_epochs=50, learning_rate=0.01, additional_filter_song={}
+    ):
+        self.song_filter_query = additional_filter_song
+
         self.num_epochs = num_epochs
-        self.learning_rate = 0.3
-
-        # LSTM cell
-        self.state_size = 10
-        self.num_layers = 3
-
-        self.input_size = 138
-        self.output_size = 138
+        self.learning_rate = learning_rate
 
         # data source interface
         self.interface = S3MongoInterface()
 
+        # Save location
         modeling_dir = os.path.dirname(os.path.abspath(__file__))
-        self.model_path = os.path.join(modeling_dir, 'tmp/keras_model.h5')
+        self.model_path = os.path.join(modeling_dir, save_name)
 
         if attempt_reload:
             print("loading model")
@@ -44,7 +50,7 @@ class Model(object):
 
     def _generate_data(self):
         depth = int(self.truncated_backprop_length)
-        current_song = self.interface.get_input_arrays({})
+        current_song = self.interface.get_input_arrays(self.song_filter_query)
         while True:
             cur_data = current_song.next()
             for i in xrange(0, len(cur_data) - depth - 1, 1):
@@ -78,20 +84,32 @@ class Model(object):
         model = Sequential()
         model.add(
             LSTM(
-                self.input_size,
+                self.batch_size,
                 return_sequences=True,
                 input_shape=(self.truncated_backprop_length, self.input_size)
             )
         )
-        model.add(Dropout(0.01))
-        model.add(LSTM(
-            self.input_size, return_sequences=False
+        model.add(Dropout(0.1))
+        model.add(Dense(
+            input_dim=self.input_size,
+            units=self.hidden_dimension
         ))
-        model.add(Dropout(0.01))
-        model.add(Dense(self.input_size))
+        # for _ in range(self.num_layers):
+        #     # model.add(Dropout(0.01))
+        #     model.add(LSTM(
+        #         input_shape=(self.hidden_dimension,), units=self.hidden_dimension,
+        #         return_sequences=True
+        #     ))
+        model.add(Dropout(0.1))
+        model.add(LSTM(
+            self.hidden_dimension, return_sequences=False
+        ))
+        model.add(Dense(self.output_size))
         model.add(Activation('sigmoid'))
 
-        opt = optimizers.Adagrad(lr=0.1, decay=1e-2)
+        opt = optimizers.Adagrad(lr=self.learning_rate)  # REVIEW: Decay LR?
+        # optsgd = optimizers.SGD(lr=self.learning_rate, momentum=1e-5)
+        # optrms = optimizers.RMSprop(lr=self.learning_rate)
         model.compile(
             loss='categorical_crossentropy', optimizer=opt,
             metrics=['accuracy']

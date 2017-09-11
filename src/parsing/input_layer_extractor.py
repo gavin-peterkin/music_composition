@@ -94,6 +94,7 @@ class InputLayerExtractor(object):
 
     @property
     def a_min_chord(self):
+        # Define A minor
         return self._make_seed_chord(57, 60, 64)
 
     def _make_seed_chord(self, notea, noteb, notec):
@@ -105,9 +106,11 @@ class InputLayerExtractor(object):
         chord.extend([[(notea, 's'), (noteb, 's'), (notec, 's')]] * 3)
         return chord
 
-    @property
-    def input_layer_seed_chord(self):
-        return self._convert_to_input_layer(self.c_chord)
+    def input_layer_seed_chord(self, minor=False):
+        if minor:
+            return self._convert_to_input_layer(self.a_min_chord)
+        else:
+            return self._convert_to_input_layer(self.c_chord)
 
     @property
     def input_layer_array(self):

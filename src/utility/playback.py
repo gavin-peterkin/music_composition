@@ -1,5 +1,7 @@
 from __future__ import division
 
+from scipy.io import wavfile as scipywf
+
 import datetime as dt
 import numpy as np
 import pyaudio
@@ -16,12 +18,13 @@ class ToneGenerator(object):
 
     def _wave_generator(self, time):
         return (
-            (np.sin(self.tau * self.freq * time)
-            + 0.25 * np.sin(self.tau * self.freq * 2 * time)
-            + 0.125 * np.sin(self.tau * self.freq * 3 * time)
-            + 0.125/2 * np.sin(self.tau * self.freq * 4 * time))
+            0.7 * (np.sin(self.tau * self.freq * time)
+            + 0.5 * np.sin(self.tau * self.freq * 0.5 * time)
+            + 0.3 * np.sin(self.tau * self.freq * 2 * time)
+            + 0.3 * np.sin(self.tau * self.freq * 3 * time)
+            + 0.125 * np.sin(self.tau * self.freq * 4 * time))
             # exponential decay
-            * np.exp(-time/8)
+            * np.exp(-time/4)
         )
 
     def get_next_samples(self, num_samples):
@@ -55,6 +58,7 @@ class Playback(object):
         waveFile.setnchannels(1)
         waveFile.setsampwidth(self.pa.get_sample_size(pyaudio.paInt16))
         waveFile.setframerate(self.sample_rate)
+        # waveFile.setnframes(int(self.sample_rate * len(self.list_of_notes) * 100))  # This doesn't do anything
         return waveFile
 
     def get_playback_output(self):
@@ -72,13 +76,15 @@ class Playback(object):
 
     def output_playback_stream(self, filename = None):
         """
-        returns something that can be played as audio
-        maybe put this in a utility?
+        This plays back a demo of what will be recorded. The actual recording
+        should be better though.
         """
         if not filename:
             stream = self.get_playback_output()
         else:
-            stream = self.get_wavfile_output(filename)
+            wavefile = self.get_wavfile_output(filename)
+            frames = []
+            # pass
 
         current_tones = dict()
         previous_active_notes = set()
@@ -88,7 +94,7 @@ class Playback(object):
             active_notes = set()
             for note, sustain in beat:
                 active_notes.add(note)
-                if sustain == 'b' or (note not in previous_active_notes):
+                if (note not in previous_active_notes):
                     current_tones.update({note: ToneGenerator(self.get_note_freq(note), self.sample_rate)})
             for note in (previous_active_notes - active_notes):
                 _ = current_tones.pop(note)
@@ -96,14 +102,21 @@ class Playback(object):
             output = np.zeros(beat_length, dtype=np.float32)
             for tone_generator in current_tones.values():
                 output += tone_generator.get_next_samples(beat_length)
-            if not filename:
-                stream.write(output / 12)
-            else:
-                stream.writeframes(self._float2pcm(output / 12))
             previous_active_notes = active_notes
+
+            if not filename:
+                stream.write(output / 20)
+            else:
+                frames.extend(self._float2pcm(output / 20))
+                # wavefile.writeframes(self._float2pcm(output / 12))
+
         if not filename:
             stream.stop_stream()
-        stream.close()
+        else:
+            # import pdb; pdb.set_trace()
+            scipywf.write(filename, self.sample_rate, np.hstack(frames))
+            # wavefile.writeframes(np.hstack(frames))
+            # wavefile.close()
 
     def play(self):
         try:
