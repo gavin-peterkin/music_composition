@@ -5,3 +5,4 @@ src/scraping/midi/.scrapy/
 src/scraping/midi/JOBDIR/
 src/scraping/midi/LOG/
 .ipynb_checkpoints/
+/samples/
