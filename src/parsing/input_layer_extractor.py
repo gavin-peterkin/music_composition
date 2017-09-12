@@ -4,6 +4,7 @@ import numpy as np
 class InputLayerExtractor(object):
 
     midi_middle_c = 60
+    # Some of these key signatures don't actually exist ;)
     transposition_table = {
         ('F-sharp-major', 'G-flat-major', 'E-flat-minor', 'D-sharp-minor'): 6,
         ('G--major', 'E--minor'): 5,
@@ -19,13 +20,14 @@ class InputLayerExtractor(object):
         ('F--major', 'D--minor'): -5
     }
 
-    def __init__(self, list_of_notes, original_key_signature):
+    def __init__(self, list_of_notes, original_key_signature, center_output=False):
         """
         Expects list_of_notes in the format [[(64, 'b')], [(76, 'b'), (64, 's')], ...]
         where each element in the list is a beat
         """
         self.original_key_signature = original_key_signature
         self.list_of_notes = self._transpose(list_of_notes, original_key_signature)
+        self.center_output = center_output
 
 
     def _transpose(self, list_of_notes, original_key_signature):
@@ -62,6 +64,14 @@ class InputLayerExtractor(object):
         return result
 
     def _convert_to_input_layer(self, list_of_notes):
+        """
+        Takes a list of notes format and transforms it into an array of input
+        layer vectors (rows) of size 138. 128 are for the notes and 10 are for
+        the number of notes.
+
+        Optionally, the data are centered to have a mean of 0 and a standard
+        deviation of 1.
+        """
         # Remove empty beats from the end of the list
         tmp_list = list_of_notes
         while not tmp_list[-1]:
@@ -75,7 +85,10 @@ class InputLayerExtractor(object):
                 #     input_layer[i, note] -= 1
         # FIXME: Think about how to include the number of notes being played
         note_count_arr = input_layer.sum(axis=1)
-        return np.hstack([input_layer, self._get_note_count_hot_arr(note_count_arr)])
+        array = np.hstack([input_layer, self._get_note_count_hot_arr(note_count_arr)])
+        if self.center_output:
+            array = (array - np.mean(array)) / np.max(np.std(array), 0)
+        return array
 
     def truncate_music_seed(self, X_seed, input_size, batch_size, truncated_backprop_length):
         assert X_seed.shape[1] == input_size, "Invalid seed shape {}".format(X_seed.shape)
