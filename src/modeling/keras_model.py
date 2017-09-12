@@ -13,19 +13,21 @@ import numpy as np
 import os
 
 
+# REVIEW: Peephole?: https://github.com/fchollet/keras/issues/1717
+
 class Model(object):
 
     note_count_len = 10
 
     truncated_backprop_length = 32
-    batch_size = 30
+    batch_size = 50
 
     # LSTM cell
     state_size = 10
-    num_layers = 1
+    num_add_layers = 3  # Don't think more layers are necessary
 
     input_size = 138
-    hidden_dimension = 200
+    hidden_dimension = 300
     output_size = 138
 
     def __init__(
@@ -81,6 +83,10 @@ class Model(object):
             yield self._data_batch().next()
 
     def build_model(self):
+        """
+        Excellent Keras model guide:
+        https://keras.io/getting-started/sequential-model-guide/
+        """
         model = Sequential()
         model.add(
             LSTM(
@@ -94,11 +100,15 @@ class Model(object):
             input_dim=self.input_size,
             units=self.hidden_dimension
         ))
-        # for _ in range(self.num_layers):
-        #     # model.add(Dropout(0.01))
+        # for _ in range(self.num_add_layers):
+        #     model.add(Dropout(0.01))
         #     model.add(LSTM(
         #         input_shape=(self.hidden_dimension,), units=self.hidden_dimension,
         #         return_sequences=True
+        #     ))
+        #     model.add(Dense(
+        #         input_dim=self.input_size,
+        #         units=self.hidden_dimension
         #     ))
         model.add(Dropout(0.1))
         model.add(LSTM(
@@ -107,11 +117,11 @@ class Model(object):
         model.add(Dense(self.output_size))
         model.add(Activation('sigmoid'))
 
-        opt = optimizers.Adagrad(lr=self.learning_rate)  # REVIEW: Decay LR?
+        # opt = optimizers.Adagrad(lr=self.learning_rate)  # NOTE: This overfits songs!
         # optsgd = optimizers.SGD(lr=self.learning_rate, momentum=1e-5)
-        # optrms = optimizers.RMSprop(lr=self.learning_rate)
+        optrms = optimizers.RMSprop(lr=self.learning_rate)
         model.compile(
-            loss='categorical_crossentropy', optimizer=opt,
+            loss='binary_crossentropy', optimizer=optrms,  # why is binary is better than categorical?
             metrics=['accuracy']
         )
         self.model = model
