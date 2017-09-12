@@ -26,9 +26,11 @@ def initialize_input_arrays():
     interface = S3MongoInterface()
     print("Done.")
 
-    # Be more selective about music that you want here:
+    # Be more selective about music that you want to parse here:
     query = {
-        "bad_file": {"$exists": 0}
+        "bad_file": {"$exists": 0},
+        "missing_key": {"$exists": 0},
+        "composer_time_period": "Classical"
     }
     for id_, filename, midi_byte_stream, expected_key in interface.pull_midi_data(query, limit=10):
 
@@ -53,19 +55,16 @@ def initialize_input_arrays():
             print("Missing key_signature for file {}".format(filename))
             continue
 
-        ile = InputLayerExtractor(midi_parser.list_of_notes, key_signature)
-
+        ile = InputLayerExtractor(
+            midi_parser.list_of_notes, key_signature, center_output=True
+        )
+        # import pdb; pdb.set_trace()
         # Save the input layer array as binary in mongodb
         interface.insert_input_array(id_, ile.input_layer_array)
         # Print "." for progress
         sys.stdout.write('.')
         sys.stdout.flush()
     print("Done.")
-
-
-
-
-
 
 
 if __name__ == '__main__':
