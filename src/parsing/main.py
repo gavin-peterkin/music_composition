@@ -29,8 +29,7 @@ def initialize_input_arrays():
     # Be more selective about music that you want to parse here:
     query = {
         "bad_file": {"$exists": 0},
-        "missing_key": {"$exists": 0},
-        "composer_time_period": "Classical"
+        "missing_key": {"$exists": 0}
     }
     for id_, filename, midi_byte_stream, expected_key in interface.pull_midi_data(query, limit=10):
 

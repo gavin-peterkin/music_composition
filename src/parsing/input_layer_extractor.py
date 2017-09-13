@@ -110,6 +110,16 @@ class InputLayerExtractor(object):
         # Define A minor
         return self._make_seed_chord(57, 60, 64)
 
+    @property
+    def excitement_seed(self):
+        list_of_notes = []
+        list_of_notes.extend([[(60, 'b'), (64, 'b'),  (67, 'b')]] * 2)
+        list_of_notes.extend([[]] * 2)
+        list_of_notes.extend([[(60, 'b'), (65, 'b'),  (69, 'b')]] * 2)
+        list_of_notes.extend([[]] * 2)
+        list_of_notes.extend([[(62, 'b'), (67, 'b'),  (71, 'b')]] * 2)
+        return list_of_notes
+
     def _make_seed_chord(self, notea, noteb, notec):
         chord = [[(notea, 'b')]]
         chord.extend([[(notea, 's')]] * 3)
@@ -119,8 +129,10 @@ class InputLayerExtractor(object):
         chord.extend([[(notea, 's'), (noteb, 's'), (notec, 's')]] * 3)
         return chord
 
-    def input_layer_seed_chord(self, minor=False):
-        if minor:
+    def input_layer_seed_chord(self, chord_descr='maj'):
+        if chord_descr == 'dyn':
+            return self._convert_to_input_layer(self.excitement_seed)
+        elif chord_descr == 'min':
             return self._convert_to_input_layer(self.a_min_chord)
         else:
             return self._convert_to_input_layer(self.c_chord)
