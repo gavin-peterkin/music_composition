@@ -54,9 +54,11 @@ def initialize_input_arrays():
             print("Missing key_signature for file {}".format(filename))
             continue
 
+        # NOTE: CENTERING BREAKS EVERYTHING!!!! DON'T DO IT!!!!
         ile = InputLayerExtractor(
-            midi_parser.list_of_notes, key_signature, center_output=True
+            midi_parser.list_of_notes, key_signature, center_output=False
         )
+        # Tested centering data on 9-12-17. Didn't seem to help
         # import pdb; pdb.set_trace()
         # Save the input layer array as binary in mongodb
         interface.insert_input_array(id_, ile.input_layer_array)

@@ -6,6 +6,7 @@ from parsing.output_translation import OutputLayerExtractor as OLE
 from keras import optimizers
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Activation, LSTM
+from keras.layers.wrappers import TimeDistributed
 from keras.layers.embeddings import Embedding
 from keras.layers.noise import GaussianNoise
 from keras.preprocessing import sequence
@@ -21,14 +22,14 @@ class Model(object):
     note_count_len = 10
 
     truncated_backprop_length = 128
-    batch_size = 200
+    batch_size = 50
 
     # LSTM cell
     state_size = 10
     num_add_layers = 3  # Don't think more layers are necessary
 
     input_size = 138
-    hidden_dimension = 300
+    hidden_dimension = 400
     output_size = 138
 
     stateful = False
@@ -91,21 +92,21 @@ class Model(object):
         https://keras.io/getting-started/sequential-model-guide/
         """
         model = Sequential()
+        model.add(GaussianNoise(0.2, input_shape=(self.truncated_backprop_length, self.input_size)))  # Does noise help prevent song overfitting?
         model.add(
             LSTM(
                 self.batch_size,
                 return_sequences=True,
                 input_shape=(self.truncated_backprop_length, self.input_size),
                 unit_forget_bias=True
-                # batch_size=self.batch_size, stateful=self.stateful
+                # batch_size=self.batch_size, stateful=True
             )
         )
-        # model.add(GaussianNoise(0.5))  # Does noise help prevent song overfitting?
-        model.add(Dropout(0.4))
-        model.add(Dense(
+        model.add(Dropout(0.1))
+        model.add(TimeDistributed(Dense(
             input_dim=self.input_size,
             units=self.hidden_dimension
-        ))
+        )))
         # for _ in range(self.num_add_layers):
         #     model.add(Dropout(0.01))
         #     model.add(LSTM(
@@ -116,11 +117,12 @@ class Model(object):
         #         input_dim=self.input_size,
         #         units=self.hidden_dimension
         #     ))
-        model.add(Dropout(0.3))
         model.add(LSTM(
             self.hidden_dimension, return_sequences=False,
+            unit_forget_bias=True
             # batch_size=self.batch_size, stateful=True
         ))
+        model.add(Dropout(0.1))
         model.add(Dense(self.output_size))
         model.add(Activation('sigmoid'))
 
@@ -128,13 +130,13 @@ class Model(object):
         # optsgd = optimizers.SGD(lr=self.learning_rate, momentum=1e-5)
         optrms = optimizers.RMSprop(lr=self.learning_rate)
         model.compile(
-            loss='binary_crossentropy', optimizer=optrms,  # binary vs. categorical?
+            loss='categorical_crossentropy', optimizer=optrms,  # binary vs. categorical?
             metrics=['accuracy']
         )
         self.model = model
 
     def fit_model(
-        self, save=False, num_epochs_per_iter=20, save_model_hist=False,
+        self, save=False, num_epochs_per_iter=100, save_model_hist=False,
         save_every=500
     ):
         self.build_model()

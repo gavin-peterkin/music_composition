@@ -42,14 +42,15 @@ def train_save_model(model_name, num_epochs):
     )
     # NOTE: Set model hyperparameters in keras_model.Model class
     model = Model(
-        attempt_reload=False, save_name=save_name, learning_rate=0.0001,
-        num_epochs=num_epochs, additional_filter_song={"composer_time_period": "Classical"}
+        attempt_reload=False, save_name=save_name, learning_rate=0.001,
+        num_epochs=num_epochs, additional_filter_song={"composer": "Beethoven, Ludwig van"}
     )
     # "composer_time_period" {"composer": "Mozart, Wolfgang Amadeus"}
     # "Baroque", "Romantic"
+    # "Beethoven, Ludwig van"
     # NOTE: If a model name is re-used on the same day, the previous model will be overwritten
     # If filtering to training subset, set
-    model.fit_model(save=True, save_model_hist=True, save_every=100)
+    model.fit_model(save=True, save_model_hist=False, save_every=100)
 
 
 def sample_model(model, beats, name):
