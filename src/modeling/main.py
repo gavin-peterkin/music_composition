@@ -30,13 +30,13 @@ BASE_OUTPUT_FOLDER = os.path.join(
 )
 
 def load_model(model_name):
-    load_filepath = "tmp/{}.h5".format(model_name)
+    load_filepath = "tmp/{}".format(model_name)
     return Model(
         attempt_reload=True, save_name=load_filepath, num_epochs=0
     )
 
 def train_save_model(model_name, num_epochs):
-    save_name = "tmp/{}_{}.h5".format(
+    save_name = "tmp/{}_{}".format(
         model_name,
         dt.datetime.now().strftime("%Y-%m-%d")
     )
@@ -45,24 +45,27 @@ def train_save_model(model_name, num_epochs):
         attempt_reload=False, save_name=save_name, learning_rate=0.001,
         num_epochs=num_epochs, additional_filter_song={"composer_time_period": "Classical"}
     )
+    # "composer_time_period" {"composer": "Mozart, Wolfgang Amadeus"}
     # "Baroque", "Romantic"
     # NOTE: If a model name is re-used on the same day, the previous model will be overwritten
     # If filtering to training subset, set
-    model.fit_model(save=True)
+    model.fit_model(save=True, save_model_hist=True, save_every=100)
+
 
 def sample_model(model, beats, name):
     ile = InputLayerExtractor([], '')
     # Produce major and minor seeds
     seeds = [
-        (bool_, ile.truncate_music_seed(
-            ile.input_layer_seed_chord(minor=bool_),
+        (chord_descr, ile.truncate_music_seed(
+            ile.input_layer_seed_chord(chord_descr=bool_),
             model.input_size,
             model.batch_size,
             model.truncated_backprop_length
         ))
-        for bool_ in (True, False)
+        for chord_descr in ('maj', 'min', 'dyn')
     ]
-    for is_minor, seed in seeds:
+
+    for chord_descr, seed in seeds:
         # Predict
         result, logits = model.predict_output(seed, beats)
         # Image note logits and save
@@ -74,22 +77,24 @@ def sample_model(model, beats, name):
         image_path = os.path.join(
             BASE_OUTPUT_FOLDER,
             "{name}_{maj_min}.png".format(
-                name=name, maj_min=(lambda x: 'min' if x else 'maj')(is_minor))
+                name=name, maj_min=chord_descr)
         )
         fig.savefig(image_path)
         # Synthesize sound and save
         ole = OutputLayerExtractor(output_logits_list=logits)
         list_of_notes = []
-        if is_minor:
+        if chord_descr == 'min':
             list_of_notes.extend(ile.a_min_chord)
-        else:
+        elif chord_descr == 'maj':
             list_of_notes.extend(ile.c_chord)
+        else:
+            list_of_notes.extend(ile.excitement_seed)
         # Add the predicted notes following seed
         list_of_notes.extend(ole.list_of_notes)
         wav_filepath = os.path.join(
             BASE_OUTPUT_FOLDER,
             "{name}_{maj_min}.wav".format(
-                name=name, maj_min=(lambda x: 'min' if x else 'maj')(is_minor))
+                name=name, maj_min=chord_descr)
         )
         pb = Playback(list_of_notes, tempo=60)
         pb.save(wav_filepath)

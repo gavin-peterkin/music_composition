@@ -7,6 +7,7 @@ from keras import optimizers
 from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Activation, LSTM
 from keras.layers.embeddings import Embedding
+from keras.layers.noise import GaussianNoise
 from keras.preprocessing import sequence
 
 import numpy as np
@@ -19,7 +20,7 @@ class Model(object):
 
     note_count_len = 10
 
-    truncated_backprop_length = 32
+    truncated_backprop_length = 64
     batch_size = 50
 
     # LSTM cell
@@ -27,11 +28,11 @@ class Model(object):
     num_add_layers = 3  # Don't think more layers are necessary
 
     input_size = 138
-    hidden_dimension = 300
+    hidden_dimension = 200
     output_size = 138
 
     def __init__(
-        self, attempt_reload=False, save_name='tmp/keras_model.h5',
+        self, attempt_reload=False, save_name='tmp/keras_model',
         num_epochs=50, learning_rate=0.01, additional_filter_song={}
     ):
         self.song_filter_query = additional_filter_song
@@ -48,7 +49,7 @@ class Model(object):
 
         if attempt_reload:
             print("loading model")
-            self.model = load_model(self.model_path)
+            self.model = load_model(self.model_path + '.h5')
 
     def _generate_data(self):
         depth = int(self.truncated_backprop_length)
@@ -88,14 +89,16 @@ class Model(object):
         https://keras.io/getting-started/sequential-model-guide/
         """
         model = Sequential()
+        model.add(GaussianNoise(0.2))  # Does noise help?
         model.add(
             LSTM(
                 self.batch_size,
                 return_sequences=True,
-                input_shape=(self.truncated_backprop_length, self.input_size)
+                input_shape=(self.truncated_backprop_length, self.input_size),
+                # batch_size=self.batch_size, stateful=True
             )
         )
-        model.add(Dropout(0.1))
+        model.add(Dropout(0.2))
         model.add(Dense(
             input_dim=self.input_size,
             units=self.hidden_dimension
@@ -110,9 +113,10 @@ class Model(object):
         #         input_dim=self.input_size,
         #         units=self.hidden_dimension
         #     ))
-        model.add(Dropout(0.1))
+        model.add(Dropout(0.2))
         model.add(LSTM(
-            self.hidden_dimension, return_sequences=False
+            self.hidden_dimension, return_sequences=False,
+            # batch_size=self.batch_size, stateful=True
         ))
         model.add(Dense(self.output_size))
         model.add(Activation('sigmoid'))
@@ -121,12 +125,15 @@ class Model(object):
         # optsgd = optimizers.SGD(lr=self.learning_rate, momentum=1e-5)
         optrms = optimizers.RMSprop(lr=self.learning_rate)
         model.compile(
-            loss='binary_crossentropy', optimizer=optrms,  # why is binary is better than categorical?
+            loss='categorical_crossentropy', optimizer=optrms,  # why is binary is better than categorical?
             metrics=['accuracy']
         )
         self.model = model
 
-    def fit_model(self, save=False, num_epochs_per_iter=100):
+    def fit_model(
+        self, save=False, num_epochs_per_iter=50, save_model_hist=False,
+        save_every=500
+    ):
         self.build_model()
         iteration = 0
         data_batch_gen = self._data_batch()
@@ -134,9 +141,11 @@ class Model(object):
             X, y = data_batch_gen.next()
             history = self.model.fit(X, y, batch_size=self.batch_size, epochs=num_epochs_per_iter)
             iteration += num_epochs_per_iter
+            if save_model_hist and iteration % save_every == 0:
+                self.model.save(self.model_path + '_' + str(iteration) + '.h5')
         if save:
             print("Saving")
-            self.model.save(self.model_path)
+            self.model.save(self.model_path + '.h5')
 
     def _note_count_index(self, note_count):
         if note_count >= 9:
