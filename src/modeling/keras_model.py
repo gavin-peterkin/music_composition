@@ -125,7 +125,7 @@ class Model(object):
         # optsgd = optimizers.SGD(lr=self.learning_rate, momentum=1e-5)
         optrms = optimizers.RMSprop(lr=self.learning_rate)
         model.compile(
-            loss='categorical_crossentropy', optimizer=optrms,  # why is binary is better than categorical?
+            loss='categorical_crossentropy', optimizer=optrms,  # binary vs. categorical?
             metrics=['accuracy']
         )
         self.model = model

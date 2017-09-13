@@ -57,7 +57,7 @@ def sample_model(model, beats, name):
     # Produce major and minor seeds
     seeds = [
         (chord_descr, ile.truncate_music_seed(
-            ile.input_layer_seed_chord(chord_descr=bool_),
+            ile.input_layer_seed_chord(chord_descr=chord_descr),
             model.input_size,
             model.batch_size,
             model.truncated_backprop_length
