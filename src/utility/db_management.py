@@ -5,8 +5,6 @@ from settings import (
     HEADERS, COOKIES, MIN_SLEEP, MAX_SLEEP
 )
 
-from bson.binary import Binary
-from io import BytesIO
 from getpass import getpass, getuser
 
 import os
