@@ -18,7 +18,7 @@ import pymongo
 
 class S3MongoInterface(object):
 
-    def __init__(self, enable_frequency_checks=False, enable_s3_conn=False):
+    def __init__(self, enable_frequency_checks=False, enable_s3_conn=True):
         self.enable_frequency_checks = enable_frequency_checks
 
         # use "put_object"
