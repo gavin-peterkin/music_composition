@@ -42,7 +42,7 @@ def train_save_model(model_name, num_epochs):
     )
     # NOTE: Set model hyperparameters in keras_model.Model class
     model = Model(
-        attempt_reload=False, save_name=save_name, learning_rate=0.001,
+        attempt_reload=False, save_name=save_name, learning_rate=0.0001,
         num_epochs=num_epochs, additional_filter_song={"composer_time_period": "Classical"}
     )
     # "composer_time_period" {"composer": "Mozart, Wolfgang Amadeus"}

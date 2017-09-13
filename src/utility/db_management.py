@@ -16,6 +16,8 @@ import sys
 Command line args:
     1: str "(r)estore" or "(d)ump"
     2: str directory path
+
+Move the zipped database using scp
 """
 
 def dump_database(output_dir):

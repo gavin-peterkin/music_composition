@@ -18,18 +18,19 @@ import pymongo
 
 class S3MongoInterface(object):
 
-    def __init__(self, enable_frequency_checks=False):
+    def __init__(self, enable_frequency_checks=False, enable_s3_conn=False):
         self.enable_frequency_checks = enable_frequency_checks
 
-        self.s3 = boto3.resource('s3')
-        self.bucket = self.s3.Bucket(BUCKET_NAME)
         # use "put_object"
 
         self.mongo_client = pymongo.MongoClient(MONGODB_SERVER, MONGODB_PORT)
         self.mongodb = self.mongo_client[MONGODB_DB]
         self.collection = self.mongodb[MONGODB_COLLECTION]
 
-        self.already_downloaded_keys = [obj.key for obj in self.bucket.objects.all()]
+        if enable_s3_conn:
+            self.s3 = boto3.resource('s3')
+            self.bucket = self.s3.Bucket(BUCKET_NAME)
+            self.already_downloaded_keys = [obj.key for obj in self.bucket.objects.all()]
 
     def _execute_download(self, url):
         """Returns raw bytestream from url"""

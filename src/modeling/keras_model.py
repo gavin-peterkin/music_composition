@@ -20,16 +20,18 @@ class Model(object):
 
     note_count_len = 10
 
-    truncated_backprop_length = 64
-    batch_size = 50
+    truncated_backprop_length = 128
+    batch_size = 200
 
     # LSTM cell
     state_size = 10
     num_add_layers = 3  # Don't think more layers are necessary
 
     input_size = 138
-    hidden_dimension = 200
+    hidden_dimension = 300
     output_size = 138
+
+    stateful = False
 
     def __init__(
         self, attempt_reload=False, save_name='tmp/keras_model',
@@ -89,16 +91,17 @@ class Model(object):
         https://keras.io/getting-started/sequential-model-guide/
         """
         model = Sequential()
-        model.add(GaussianNoise(0.2))  # Does noise help?
         model.add(
             LSTM(
                 self.batch_size,
                 return_sequences=True,
                 input_shape=(self.truncated_backprop_length, self.input_size),
-                # batch_size=self.batch_size, stateful=True
+                unit_forget_bias=True
+                # batch_size=self.batch_size, stateful=self.stateful
             )
         )
-        model.add(Dropout(0.2))
+        # model.add(GaussianNoise(0.5))  # Does noise help prevent song overfitting?
+        model.add(Dropout(0.4))
         model.add(Dense(
             input_dim=self.input_size,
             units=self.hidden_dimension
@@ -113,7 +116,7 @@ class Model(object):
         #         input_dim=self.input_size,
         #         units=self.hidden_dimension
         #     ))
-        model.add(Dropout(0.2))
+        model.add(Dropout(0.3))
         model.add(LSTM(
             self.hidden_dimension, return_sequences=False,
             # batch_size=self.batch_size, stateful=True
@@ -125,13 +128,13 @@ class Model(object):
         # optsgd = optimizers.SGD(lr=self.learning_rate, momentum=1e-5)
         optrms = optimizers.RMSprop(lr=self.learning_rate)
         model.compile(
-            loss='categorical_crossentropy', optimizer=optrms,  # binary vs. categorical?
+            loss='binary_crossentropy', optimizer=optrms,  # binary vs. categorical?
             metrics=['accuracy']
         )
         self.model = model
 
     def fit_model(
-        self, save=False, num_epochs_per_iter=50, save_model_hist=False,
+        self, save=False, num_epochs_per_iter=20, save_model_hist=False,
         save_every=500
     ):
         self.build_model()
@@ -174,6 +177,7 @@ class Model(object):
         return result
 
     def predict_output(self, seed, beat_length):
+        # if not self.stateful:
         logits_list = list()
         for i in range(beat_length):
             X = seed[-self.truncated_backprop_length:,:]
@@ -183,3 +187,14 @@ class Model(object):
             seed = np.vstack([seed, self._convert_to_input_layer(self.input_size, new_logit)])
             # import pdb; pdb.set_trace()
         return seed, logits_list
+        # else:
+        #     logits_list = list()
+        #     for i in range(beat_length):
+        #         # Duplicate seed to be the same for all batches
+        #         Xs = [seed[-self.truncated_backprop_length:,:]] * self.batch_size
+        #         X = np.stack(Xs, axis=0)
+        #         new_logit = self.model.predict(X.reshape((self.batch_size, self.truncated_backprop_length, self.input_size)))
+        #         logits_list.append(new_logit)
+        #         seed = np.vstack([seed, self._convert_to_input_layer(self.input_size, new_logit)])
+        #         # import pdb; pdb.set_trace()
+        #     return seed, logits_list
