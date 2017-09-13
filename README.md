@@ -1,4 +1,4 @@
-# Classical Music AI
+# Classical Music RNN
 
 The purpose of this project is to train a recurrent neural network (RNN) using scraped
 midi files which fall under the creative commons license. Specifically, I'll be
