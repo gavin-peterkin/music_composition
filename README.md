@@ -1,9 +1,10 @@
-# Classical Music RNN
+# J.S. Bot
 
 The purpose of this project is to train a recurrent neural network (RNN) using scraped
 midi files which fall under the creative commons license. Specifically, I'll be
 using a long short term memory (LSTM) RNN to try to recreate improvised
-Classical, Baroque, and Romantic musical styles.
+Classical, Baroque, and Romantic musical styles. Ironically, J.S. Bot has not been trained
+on any Bach--at least not yet.
 
 _This project is still a work in progress..._
 
@@ -17,17 +18,18 @@ appreciation of music.
 
 These are some of the goals I hope to achieve with this project:
 * The network is capable of playing multiple notes
-* The network can discover chord progressions and melodic fragments and use them
-together
+* The network can use chord progressions and melodic fragments together
 * The network operates in a single key signature unless it momentarily uses modulation
 for musical effect
 * A musical style can be determined from synthesized output
+* Can we learn new things about a composer or style by examining a RNN model?
 
-A network that met these criteria could have tons of applications. It could be used to generate
+A network that met some of these criteria could have tons of applications. It could be used to generate
 a never-ending streaming radio station trained on a user's favorite musical styles or artists.
 It could also be used during live performances where the performer's actions are
 fed to the model and the network's next step prediction is played along with the
 performer's. This would make a nice automatic accompaniment or "duet" program.
+It could also be an aid to the composition process.
 
 ## Data Understanding and Preparation
 
@@ -73,11 +75,45 @@ which notes are being played in the beat and 10 floats indicating the number of 
 to play during this beat. The number of notes one-hot-encoding is then used
 together with the predicted note probabilities to select the x most likely notes.
 
-See [`src/parsing/`](src/parsing/).
+See [`src/parsing/`](src/parsing/) to review the code.
+
+(insert beautiful data pipeline graphic here)
 
 ## Modeling
-(diagram here?)
+The processed data is stored as a binary arrays in the MongoDB, so it's easily accessible
+for training via a series of generators (a lazily-evaluating iterator in python).
+I did this to prevent training from becoming memory-bound in any way.
 
+During training, a section of a piece is returned based on a truncated lookback parameter.
+I found that about two measures or 128 16th notes sufficed for capturing some interesting,
+if perhaps a bit repetitive, harmonic progressions.
+
+The most challenging component of the modeling process has been figuring out how
+to mitigate the song overfitting issue. Loss (defined as [categorical crossentropy]
+(https://en.wikipedia.org/wiki/Cross_entropy)) seems to have distinct minima for
+different songs. Pieces that exhibit musical differences, like Baroque and Modern
+for example, are then extremely difficult to fit simultaneously.
+
+I attempted to address this problem in a few ways. First, I limited training samples
+to a single distinct musical style either by using the works of only a single composer
+or a composer time period. I also made some adjustments to the network architecture.
+I used a dropout of about 0.2 at two points in the network. I also injected Gaussian
+noise with a standard deviation of about 0.1 into the input layer. These techniques
+_may_ have helped some, but the network was still clearly fitting to local song minima
+rather than "musical theory" minima, which to some extent was to be expected.
+
+(awesome network diagram here?)
+
+
+## Music Synthesis
+In order to avoid translating my results back into midi for playback, I created
+my own Playback class which takes a `list_of_notes` object and can either play the mono stream
+through output or be saved to a wav file. All of the musical samples were created
+using Playback in the [utility directory](/src/utility/).
+
+An additional benefit of this approach is that I get to define my own oscillators,
+so I can add whichever harmonics I want and not be limited to some of the worse-sounding
+midi instruments.
 
 ## Areas for Improvement
 
@@ -87,7 +123,7 @@ In some instances the network is probably overfitting. Rather than fitting some
 general style, it's fitting the very specific style of a single piece. This was reflected
 during training when the loss would decrease steadily until the network was exposed
 to something new and jumped back up again. There may also be ways of mitigating
-with some transformation of the training data.
+with some additional transformation of the training data.
 
 ## Thoughts for future development
 
@@ -99,7 +135,12 @@ music.
 
 ## General Usage Notes
 
-I used a virtualenv for this project. In order to recreate or adapt this work
+### Some general requirements
+You'll need to have MongoDB installed and running in order for scraping to work.
+The download pipeline also assumes you have a AWS credentials set up and a midi bucket.
+I can make my bucket of midi files public if there's interest...
+
+I used a virtualenv for this project with Python 2.7. In order to recreate or adapt this work
 for your own purposes, clone the repo and in a new virtualenv run:
 
 `pip install -r requirements.txt` (obtained via `pip freeze > requirements.txt`)
@@ -124,3 +165,5 @@ Additionally, run the following to add the project to your python path:
 ### Neural Network Background and Theory
 
 * [Understanding LSTMs Blog Post](http://colah.github.io/posts/2015-08-Understanding-LSTMs/)
+
+* [Dropout: A Simple Way to Prevent Overfitting](http://www.jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf)
