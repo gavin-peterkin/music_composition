@@ -85,7 +85,7 @@ for training via a series of generators (a lazily-evaluating iterator in python)
 I did this to prevent training from becoming memory-bound in any way.
 
 During training, a section of a piece is returned based on a truncated lookback parameter.
-I found that about two measures or 128 16th notes sufficed for capturing some interesting,
+I found that about two measures or 128 16th notes seemed to be enough for some changing,
 if perhaps a bit repetitive, harmonic progressions.
 
 The most challenging component of the modeling process has been figuring out how
@@ -124,6 +124,10 @@ general style, it's fitting the very specific style of a single piece. This was 
 during training when the loss would decrease steadily until the network was exposed
 to something new and jumped back up again. There may also be ways of mitigating
 with some additional transformation of the training data.
+
+* **Cluster music** Since there's such a large quantity of music out there,
+it may make sense to cluster music first into distinct categories and _then_
+train models on that distinct genre.
 
 ## Thoughts for future development
 
