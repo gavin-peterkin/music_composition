@@ -54,7 +54,7 @@ def initialize_input_arrays():
             print("Missing key_signature for file {}".format(filename))
             continue
 
-        # NOTE: CENTERING BREAKS EVERYTHING!!!! DON'T DO IT!!!!
+        # NOTE: CENTERING BREAKS EVERYTHING!!!! FOR THE LOVE OF GOD DON'T DO IT!!!!
         ile = InputLayerExtractor(
             midi_parser.list_of_notes, key_signature, center_output=False
         )
