@@ -29,7 +29,7 @@ class Model(object):
     num_add_layers = 3  # Don't think more layers are necessary
 
     input_size = 138
-    hidden_dimension = 400
+    hidden_dimension = 300
     output_size = 138
 
     stateful = False
@@ -92,7 +92,7 @@ class Model(object):
         https://keras.io/getting-started/sequential-model-guide/
         """
         model = Sequential()
-        model.add(GaussianNoise(0.2, input_shape=(self.truncated_backprop_length, self.input_size)))  # Does noise help prevent song overfitting?
+        model.add(GaussianNoise(0.12, input_shape=(self.truncated_backprop_length, self.input_size)))  # Does noise help prevent song overfitting?
         model.add(
             LSTM(
                 self.batch_size,
@@ -102,7 +102,7 @@ class Model(object):
                 # batch_size=self.batch_size, stateful=True
             )
         )
-        model.add(Dropout(0.1))
+        model.add(Dropout(0.15))
         model.add(TimeDistributed(Dense(
             input_dim=self.input_size,
             units=self.hidden_dimension
@@ -122,7 +122,7 @@ class Model(object):
             unit_forget_bias=True
             # batch_size=self.batch_size, stateful=True
         ))
-        model.add(Dropout(0.1))
+        model.add(Dropout(0.15))
         model.add(Dense(self.output_size))
         model.add(Activation('sigmoid'))
 
@@ -130,13 +130,13 @@ class Model(object):
         # optsgd = optimizers.SGD(lr=self.learning_rate, momentum=1e-5)
         optrms = optimizers.RMSprop(lr=self.learning_rate)
         model.compile(
-            loss='categorical_crossentropy', optimizer=optrms,  # binary vs. categorical?
+            loss='categorical_crossentropy', optimizer=optrms,  # binary does not work!
             metrics=['accuracy']
         )
         self.model = model
 
     def fit_model(
-        self, save=False, num_epochs_per_iter=100, save_model_hist=False,
+        self, save=False, num_epochs_per_iter=50, save_model_hist=False,
         save_every=500
     ):
         self.build_model()
