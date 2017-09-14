@@ -77,7 +77,7 @@ together with the predicted note probabilities to select the x most likely notes
 
 See [`src/parsing/`](src/parsing/) to review the code.
 
-(insert beautiful data pipeline graphic here)
+![png](/graphics/data_pipeline.png)
 
 ## Modeling
 The processed data is stored as a binary arrays in the MongoDB, so it's easily accessible
