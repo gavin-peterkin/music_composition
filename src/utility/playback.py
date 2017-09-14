@@ -24,7 +24,7 @@ class ToneGenerator(object):
             + 0.3 * np.sin(self.tau * self.freq * 3 * time)
             + 0.125 * np.sin(self.tau * self.freq * 4 * time))
             # exponential decay
-            * np.exp(-time/4)
+            * np.exp(-time/8)
         )
 
     def get_next_samples(self, num_samples):
