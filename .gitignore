@@ -6,3 +6,5 @@ src/scraping/midi/JOBDIR/
 src/scraping/midi/LOG/
 .ipynb_checkpoints/
 /samples/
+/graphics/!*.png
+/src/modeling/tmp/*
