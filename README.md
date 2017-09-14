@@ -89,8 +89,7 @@ I found that about two measures or 128 16th notes seemed to be enough for some c
 if perhaps a bit repetitive, harmonic progressions.
 
 The most challenging component of the modeling process has been figuring out how
-to mitigate the song overfitting issue. Loss (defined as [categorical crossentropy]
-(https://en.wikipedia.org/wiki/Cross_entropy)) seems to have distinct minima for
+to mitigate the song overfitting issue. Loss (defined as [categorical crossentropy](https://en.wikipedia.org/wiki/Cross_entropy)) seems to have distinct minima for
 different songs. Pieces that exhibit musical differences, like Baroque and Modern
 for example, are then extremely difficult to fit simultaneously.
 
@@ -102,7 +101,15 @@ noise with a standard deviation of about 0.1 into the input layer. These techniq
 _may_ have helped some, but the network was still clearly fitting to local song minima
 rather than "musical theory" minima, which to some extent was to be expected.
 
-(awesome network diagram here?)
+### A simplified network diagram
+![png](/graphics/network.png)
+
+* The input and output size of one timestep is 138
+* The input layer was adjusted by introducing gaussian noise during training
+* The number of hidden dimensions was freely adjusted from 200 to about 500
+* The first LSTM layer returned sequences
+* A dropout of around 0.4 was used for each LSTM layer
+* This diagram omits the time dimension for clarity
 
 
 ## Music Synthesis
@@ -129,6 +136,11 @@ with some additional transformation of the training data.
 it may make sense to cluster music first into distinct categories and _then_
 train models on that distinct genre.
 
+* **Parameter tuning** There are a lot of parameters that need to be tuned. It's
+not easy to test new hyperparameters since a training session can be unsuccessful
+for a _very_ long time even if it is slowly converging on an optima. The easiest
+way to confront this problem would be to use more computer power.
+
 ## Thoughts for future development
 
 * **Combine models** by having them synthesize collaboratively. Using several models
@@ -139,7 +151,7 @@ music.
 
 ## General Usage Notes
 
-### Some general requirements
+### Some requirements
 You'll need to have MongoDB installed and running in order for scraping to work.
 The download pipeline also assumes you have a AWS credentials set up and a midi bucket.
 I can make my bucket of midi files public if there's interest...
@@ -170,4 +182,13 @@ Additionally, run the following to add the project to your python path:
 
 * [Understanding LSTMs Blog Post](http://colah.github.io/posts/2015-08-Understanding-LSTMs/)
 
+* [The Unreasonable Effectiveness of RNNs](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
+
 * [Dropout: A Simple Way to Prevent Overfitting](http://www.jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf)
+
+* [Optimization Algorithms](http://ruder.io/optimizing-gradient-descent/index.html#rmsprop)
+### Graphics
+
+* [Neural Network texample.net](http://www.texample.net/tikz/examples/neural-network/)
+
+* [Flow Chart texample.net](http://www.texample.net/tikz/examples/simple-flow-chart/)
