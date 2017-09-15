@@ -26,11 +26,11 @@ class S3MongoInterface(object):
         self.mongo_client = pymongo.MongoClient(MONGODB_SERVER, MONGODB_PORT)
         self.mongodb = self.mongo_client[MONGODB_DB]
         self.collection = self.mongodb[MONGODB_COLLECTION]
+        self.cursor = None
 
-        if enable_s3_conn:
-            self.s3 = boto3.resource('s3')
-            self.bucket = self.s3.Bucket(BUCKET_NAME)
-            self.already_downloaded_keys = [obj.key for obj in self.bucket.objects.all()]
+        self.s3 = boto3.resource('s3')
+        self.bucket = self.s3.Bucket(BUCKET_NAME)
+        self.already_downloaded_keys = [obj.key for obj in self.bucket.objects.all()]
 
     def _execute_download(self, url):
         """Returns raw bytestream from url"""
@@ -144,18 +144,17 @@ class S3MongoInterface(object):
             "download_urls": {'$elemMatch': {'$regex': '.*\.mid'}},
             "has_input_layer": 1
         })
-        if not go_forever:
-            cursor = self.collection.find(
+        while True:
+            if self.cursor is not None:
+                self.cursor.close()
+            self.cursor = self.collection.find(
                 mongo_query,
-                {"input_layer_array": 1}
+                {"input_layer_array": 1},
+                no_cursor_timeout=True
             )
-            for doc in cursor:
+            for doc in self.cursor:
                 yield pickle.loads(doc["input_layer_array"])
-        else:
-            while True:
-                cursor = self.collection.find(
-                    mongo_query,
-                    {"input_layer_array": 1}
-                )
-                for doc in cursor:
-                    yield pickle.loads(doc["input_layer_array"])
+
+    def close_connections(self):
+        if self.cursor is not None:
+            self.cursor.close()
