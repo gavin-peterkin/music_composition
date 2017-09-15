@@ -96,8 +96,8 @@ for example, are then extremely difficult to fit simultaneously.
 I attempted to address this problem in a few ways. First, I limited training samples
 to a single distinct musical style either by using the works of only a single composer
 or a composer time period. I also made some adjustments to the network architecture.
-I used a dropout of about 0.2 at two points in the network. I also injected Gaussian
-noise with a standard deviation of about 0.1 into the input layer. These techniques
+I used a fairly large dropout at two points in the network. I also injected Gaussian
+noise with a somewhat high standard deviation into the input layer. These techniques
 _may_ have helped some, but the network was still clearly fitting to local song minima
 rather than "musical theory" minima, which to some extent was to be expected.
 
@@ -115,7 +115,7 @@ rather than "musical theory" minima, which to some extent was to be expected.
 ## Music Synthesis
 In order to avoid translating my results back into midi for playback, I created
 my own Playback class which takes a `list_of_notes` object and can either play the mono stream
-through output or be saved to a wav file. All of the musical samples were created
+through output or save it to a wav file. All of the musical samples were created
 using Playback in the [utility directory](/src/utility/).
 
 An additional benefit of this approach is that I get to define my own oscillators,
@@ -140,6 +140,12 @@ train models on that distinct genre.
 not easy to test new hyperparameters since a training session can be unsuccessful
 for a _very_ long time even if it is slowly converging on an optima. The easiest
 way to confront this problem would be to use more computer power.
+
+* **More data** As always, more data would definitely help improve the model and
+ameliorate the overfitting problem.
+
+* **More compute power** By moving training on to an AWS EC2 instance with much
+better graphics specs, I could drastically reduce the training time.
 
 ## Thoughts for future development
 
@@ -168,6 +174,9 @@ Additionally, run the following to add the project to your python path:
 
 ## Resources
 
+I made extensive use of online resources for this project. I don't think I wouldn't
+have gotten far without extensive use of the following resources.
+
 ### Coding
 
 * [How to build a RNN in TensorFlow](https://medium.com/@erikhallstrm/hello-world-rnn-83cd7105b767)
@@ -187,6 +196,7 @@ Additionally, run the following to add the project to your python path:
 * [Dropout: A Simple Way to Prevent Overfitting](http://www.jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf)
 
 * [Optimization Algorithms](http://ruder.io/optimizing-gradient-descent/index.html#rmsprop)
+
 ### Graphics
 
 * [Neural Network texample.net](http://www.texample.net/tikz/examples/neural-network/)
