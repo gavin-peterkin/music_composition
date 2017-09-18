@@ -8,6 +8,8 @@ on any Bach--at least not yet.
 
 _This project is still a work in progress..._
 
+**Help me out by participating in a survey [here](http://gavin-peterkin.github.io/science/2017/09/13/j_s_bot.html).**
+
 ## Business Understanding
 
 Some existing algorithmic music composition procedures are limited in that they try
