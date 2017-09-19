@@ -186,7 +186,8 @@ Additionally, run the following to add the project to your python path:
 ## Resources
 
 I made extensive use of online resources for this project. I don't think I wouldn't
-have gotten far without extensive use of the following resources.
+have gotten far without help from Galvanize data science instructors and the countless
+resources available freely online.
 
 ### Coding
 
