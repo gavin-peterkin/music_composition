@@ -124,6 +124,12 @@ An additional benefit of this approach is that I get to define my own oscillator
 so I can add whichever harmonics I want and not be limited to some of the worse-sounding
 midi instruments.
 
+## Evaluation
+
+Survey results indicate that users prefer network-generated output to "random" music.
+Users can also distinguish model output from actual music composed by humans.
+![png](/survey/response_hist.png)
+
 ## Areas for Improvement
 
 * **More accurate reporting** of overfitting by analyzing loss on an out-of-sample
