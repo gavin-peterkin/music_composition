@@ -183,6 +183,20 @@ Additionally, run the following to add the project to your python path:
 `add2virtualenv <absolute path to src dir>`
 
 
+# Tech Stack
+
+## Python 2.7
+* Scrapy, BeautifulSoup4
+* Boto3, PyMongo
+* Numpy, Mido
+* Matplotlib
+* TensorFlow, Keras
+* PyAudio
+
+## Data
+* MongoDB
+* Amazon Web Services (AWS) S3
+
 ## Resources
 
 I made extensive use of online resources for this project. I don't think I wouldn't
