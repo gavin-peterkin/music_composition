@@ -8,7 +8,7 @@ on any Bach--at least not yet.
 
 _This project is still a work in progress..._
 
-**Help me out by participating in a survey [here](http://gavin-peterkin.github.io/science/2017/09/13/j_s_bot.html).**
+**For some audio samples visit my blog [here](http://gavin-peterkin.github.io/science/2017/09/13/j_s_bot.html).**
 
 ## Business Understanding
 
@@ -191,6 +191,8 @@ have gotten far without extensive use of the following resources.
 * [A repo for jazz synthesis with Keras](https://github.com/jisungk/deepjazz)
 
 * [A music synthesis repo with Keras](https://github.com/MattVitelli/GRUV)
+
+* [TensorFlow Cookbook](https://github.com/nfmcclure/tensorflow_cookbook#ch-9-recurrent-neural-networks)
 
 ### Neural Network Background and Theory
 

@@ -43,7 +43,7 @@ def train_save_model(model_name, num_epochs):
     # NOTE: Set model hyperparameters in keras_model.Model class
     model = Model(
         attempt_reload=False, save_name=save_name, learning_rate=0.0001,
-        num_epochs=num_epochs, additional_filter_song={"composer": "Mozart, Wolfgang Amadeus"}
+        num_epochs=num_epochs, additional_filter_song={"composer": "Beethoven, Ludwig van"}
     )
     # "composer_time_period" {"composer": "Mozart, Wolfgang Amadeus"}
     # {"composer": "Beethoven, Ludwig van"}
@@ -51,9 +51,28 @@ def train_save_model(model_name, num_epochs):
     # "Beethoven, Ludwig van"
     # NOTE: If a model name is re-used on the same day, the previous model will be overwritten
     # If filtering to training subset, set
-    model.fit_model(
-        save=True, save_model_hist=True, save_every=500, num_epochs_per_iter=5
+    try:
+        model.fit_model(
+            save=True, save_model_hist=True, save_every=500, num_epochs_per_iter=7
+        )
+    except KeyboardInterrupt:
+        print("Closing connections...")
+        model.interface.close_connections()
+        sys.exit("Exiting")
+
+def save_image(logits):
+    # Image note logits and save
+    fig, ax = plt.subplots(figsize=(14, 20))
+    ax.imshow(
+        np.asarray(logits).reshape((200, 138)),
+        norm=PowerNorm(0.4)
     )
+    image_path = os.path.join(
+        BASE_OUTPUT_FOLDER,
+        "{name}_{maj_min}.png".format(
+            name=name, maj_min=chord_descr)
+    )
+    fig.savefig(image_path)
 
 
 def sample_model(model, beats, name):
@@ -72,18 +91,7 @@ def sample_model(model, beats, name):
     for chord_descr, seed in seeds:
         # Predict
         result, logits = model.predict_output(seed, beats)
-        # Image note logits and save
-        fig, ax = plt.subplots(figsize=(14, 20))
-        ax.imshow(
-            np.asarray(logits).reshape((200, 138)),
-            norm=PowerNorm(0.4)
-        )
-        image_path = os.path.join(
-            BASE_OUTPUT_FOLDER,
-            "{name}_{maj_min}.png".format(
-                name=name, maj_min=chord_descr)
-        )
-        fig.savefig(image_path)
+        save_image(logits)
         # Synthesize sound and save
         ole = OutputLayerExtractor(output_logits_list=logits)
         list_of_notes = []
