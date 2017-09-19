@@ -128,7 +128,7 @@ midi instruments.
 
 Survey results indicate that users prefer network-generated output to "random" music.
 Users can also distinguish model output from actual music composed by humans.
-![png](/survey/response_hist.png)
+![png](/graphics/response_hist.png)
 
 ## Areas for Improvement
 
