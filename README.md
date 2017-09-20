@@ -126,9 +126,13 @@ midi instruments.
 
 ## Evaluation
 
-Survey results indicate that users prefer network-generated output to "random" music.
-Users can also distinguish model output from actual music composed by humans.
-![png](/graphics/response_hist.png)
+Survey results suggest that listeners can distinguish that model output sounds
+significantly less random than actual random sounds.
+![png](/graphics/random_response_hist.png)
+
+Respondents also thought that the network output sounded more random than actual
+music although it was able to fool some listeners.
+![png](/graphics/actual_response_hist.png)
 
 ## Areas for Improvement
 
@@ -199,7 +203,7 @@ Additionally, run the following to add the project to your python path:
 
 ## Resources
 
-I made extensive use of online resources for this project. I don't think I wouldn't
+I made extensive use of online resources for this project. I don't think I would
 have gotten far without help from Galvanize data science instructors and the countless
 resources available freely online.
 
