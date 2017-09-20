@@ -128,10 +128,12 @@ midi instruments.
 
 Survey results suggest that listeners can distinguish that model output sounds
 significantly less random than actual random sounds.
+
 ![png](/graphics/random_response_hist.png)
 
 Respondents also thought that the network output sounded more random than actual
 music although it was able to fool some listeners.
+
 ![png](/graphics/actual_response_hist.png)
 
 ## Areas for Improvement
