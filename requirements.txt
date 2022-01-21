@@ -30,7 +30,7 @@ incremental==17.5.0
 ipaddress==1.0.18
 ipdb==0.10.3
 ipykernel==4.6.1
-ipython==5.4.1
+ipython==7.16.3
 ipython-genutils==0.2.0
 jmespath==0.9.3
 jupyter-client==5.1.0
