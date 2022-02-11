@@ -79,7 +79,7 @@ tensorflow==1.3.0
 tensorflow-tensorboard==0.1.5
 tornado==4.5.2
 traitlets==4.3.2
-Twisted==17.5.0
+Twisted==22.1.0
 urllib3==1.22
 w3lib==1.18.0
 wcwidth==0.1.7
