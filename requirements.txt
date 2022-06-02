@@ -23,7 +23,7 @@ funcsigs==1.0.2
 functools32==3.2.3.post2
 futures==3.1.1
 h5py==2.7.1
-html5lib==0.9999999
+html5lib==0.99999999
 hyperlink==17.3.1
 idna==2.6
 incremental==17.5.0
