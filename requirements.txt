@@ -41,7 +41,7 @@ Markdown==2.6.9
 matplotlib==2.0.2
 mido==1.2.8
 mock==2.0.0
-numpy==1.13.1
+numpy==1.22.0
 parsel==1.2.0
 pathlib2==2.3.0
 pbr==3.1.1
