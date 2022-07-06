@@ -36,7 +36,7 @@ jmespath==0.9.3
 jupyter-client==5.1.0
 jupyter-core==4.3.0
 Keras==2.0.8
-lxml==3.8.0
+lxml==4.9.1
 Markdown==2.6.9
 matplotlib==2.0.2
 mido==1.2.8
